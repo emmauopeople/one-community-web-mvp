@@ -3,6 +3,10 @@ import { query } from "../../db.js";
 import { requireAuth, requireRole } from "../middleware/requireAuth.js";
 import { logAuthEvent } from "../services/authLogService.js";
 
+import {
+  validateOnboarding,
+  CONSENT_VERSION,
+} from "../services/providerLocation.js";
 const router = express.Router();
 
 const clean = (v) => String(v || "").trim();
@@ -22,12 +26,13 @@ function validPhone(s) {
 router.get("/providers/:providerId/public", async (req, res) => {
   try {
     const providerId = Number(req.params.providerId);
-    if (!providerId) return res.status(400).json({ error: "Invalid provider id" });
+    if (!providerId)
+      return res.status(400).json({ error: "Invalid provider id" });
 
     const r = await query(
       `SELECT id, email, phone, role, status, display_name, created_at, updated_at
        FROM users
-       WHERE id=$1 AND role='provider' AND status='active'`,
+       WHERE id=$1 AND role='provider' AND status='active' AND gps_consent_at IS NOT NULL AND gps_consent_version='provider-gps-v1.2' AND gps_consent_withdrawn_at IS NULL`,
       [providerId],
     );
 
@@ -50,7 +55,7 @@ router.get(
     const userId = req.session.user.id;
 
     const r = await query(
-      `SELECT id, email, phone, role, status, display_name, created_at, updated_at
+      `SELECT id, email, phone, role, status, display_name, created_at, updated_at, operating_location, gps_consent_at, gps_consent_version, gps_consent_withdrawn_at
      FROM users
      WHERE id=$1 AND role='provider'`,
       [userId],
@@ -108,6 +113,60 @@ router.put(
     } catch {}
 
     return res.json({ ok: true, profile: r.rows[0] });
+  },
+);
+
+router.put(
+  "/provider/location",
+  requireAuth,
+  requireRole("provider"),
+  async (req, res) => {
+    let location;
+    try {
+      location = validateOnboarding(req.body);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+    try {
+      const result = await query(
+        `WITH changed AS (
+      UPDATE users SET operating_location=$2::jsonb, gps_consent_at=NOW(),
+        gps_consent_version=$3, gps_consent_withdrawn_at=NULL, updated_at=NOW()
+      WHERE id=$1 AND role='provider' RETURNING id, operating_location, gps_consent_at, gps_consent_version
+    ), audit AS (
+      INSERT INTO provider_location_audit(provider_id,action,consent_version)
+      SELECT id,'updated',$3 FROM changed
+    ) SELECT * FROM changed`,
+        [req.session.user.id, JSON.stringify(location), CONSENT_VERSION],
+      );
+      if (!result.rows.length)
+        return res.status(404).json({ error: "Provider not found" });
+      return res.json({ profile: result.rows[0] });
+    } catch {
+      return res
+        .status(500)
+        .json({ error: "Unable to save operating location." });
+    }
+  },
+);
+
+router.delete(
+  "/provider/location/consent",
+  requireAuth,
+  requireRole("provider"),
+  async (req, res) => {
+    try {
+      await query(
+        `WITH changed AS (
+      UPDATE users SET gps_consent_withdrawn_at=NOW() WHERE id=$1 AND role='provider' RETURNING id
+    ) INSERT INTO provider_location_audit(provider_id,action,consent_version)
+      SELECT id,'withdrawn',$2 FROM changed`,
+        [req.session.user.id, CONSENT_VERSION],
+      );
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "Unable to withdraw consent." });
+    }
   },
 );
 

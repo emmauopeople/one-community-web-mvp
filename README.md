@@ -1,3 +1,5 @@
+> **Current feature: provider location and nearby discovery (v1.2).** Read `docs/V1.2-IMPLEMENTATION.md` for current behavior, upgrade requirements and remaining scope. The foundation notes below describe the earlier baseline.
+
 # One Community Web MVP
 
 Foundation branch for a low-bandwidth Cameroon skill-discovery pilot. Public web,

@@ -10,6 +10,12 @@ import {
   resetLoginAttempts,
 } from "../services/loginAttemptService.js";
 
+import {
+  validateOnboarding,
+  validateLocation,
+  CONSENT_VERSION,
+} from "../services/providerLocation.js";
+
 const router = express.Router();
 
 const OTP_EXPIRES_MIN = 15;
@@ -77,6 +83,13 @@ router.post("/auth/provider/begin", async (req, res) => {
         .json({ error: "Only email OTP is supported in MVP" });
     }
 
+    let operatingLocation;
+    try {
+      operatingLocation = validateOnboarding(req.body);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
     // Block duplicate emails early (avoid sending OTP for existing accounts)
     const existing = await query(`SELECT 1 FROM users WHERE email=$1 LIMIT 1`, [
       email,
@@ -106,9 +119,9 @@ router.post("/auth/provider/begin", async (req, res) => {
 
     await query(
       `INSERT INTO pending_registrations
-     (email, phone, password_hash, otp_hash, otp_expires_at, attempts, resend_count, locked_until, display_name)
+     (email, phone, password_hash, otp_hash, otp_expires_at, attempts, resend_count, locked_until, display_name, operating_location, gps_consent_at, gps_consent_version)
    VALUES
-     ($1, $2, $3, $4, NOW() + INTERVAL '${OTP_EXPIRES_MIN} minutes', 0, 0, NULL, $5)
+     ($1, $2, $3, $4, NOW() + INTERVAL '${OTP_EXPIRES_MIN} minutes', 0, 0, NULL, $5, $6::jsonb, NOW(), $7)
    ON CONFLICT (email)
    DO UPDATE SET
      phone=$2,
@@ -118,9 +131,17 @@ router.post("/auth/provider/begin", async (req, res) => {
      attempts=0,
      resend_count=0,
      locked_until=NULL,
-     display_name=$5,
+     display_name=$5, operating_location=$6::jsonb, gps_consent_at=NOW(), gps_consent_version=$7,
      updated_at=NOW()`,
-      [email, phone, passwordHash, otpHash, displayName || null],
+      [
+        email,
+        phone,
+        passwordHash,
+        otpHash,
+        displayName || null,
+        JSON.stringify(operatingLocation),
+        CONSENT_VERSION,
+      ],
     );
 
     await sendOtpEmail({ to: email, otp });
@@ -134,7 +155,7 @@ router.post("/auth/provider/begin", async (req, res) => {
 
     return res.status(200).json({ ok: true, message: "OTP sent" });
   } catch (ex) {
-    console.error("provider/begin error:", ex);
+    console.error("provider/begin failed", ex?.code || "unknown");
     return res.status(500).json({ error: "Failed to start registration" });
   }
 });
@@ -213,6 +234,14 @@ router.post("/auth/provider/complete", async (req, res) => {
       return res.status(400).json({ error: "Invalid code" });
     }
 
+    try {
+      if (!row.gps_consent_at || row.gps_consent_version !== CONSENT_VERSION)
+        throw new Error("GPS consent missing. Start registration again.");
+      validateLocation(row.operating_location);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
     // Create provider user (race-safe)
     let created;
     try {
@@ -230,10 +259,27 @@ router.post("/auth/provider/complete", async (req, res) => {
       //-----adding for dispay name----
 
       created = await query(
-        `INSERT INTO users (email, phone, password_hash, role, status, email_verified, display_name)
-        VALUES ($1, $2, $3, 'provider', 'active', TRUE, $4)
-        RETURNING id, email, role, status, display_name`,
-        [email, row.phone, row.password_hash, row.display_name || null],
+        `WITH pending AS (
+          DELETE FROM pending_registrations WHERE email=$1 AND otp_hash=$2
+            AND otp_expires_at > NOW() AND (locked_until IS NULL OR locked_until <= NOW()) AND gps_consent_at IS NOT NULL
+            AND gps_consent_version=$3 AND operating_location=$4::jsonb
+          RETURNING *
+        ), created AS (
+          INSERT INTO users (email, phone, password_hash, role, status, email_verified, display_name,
+            operating_location, gps_consent_at, gps_consent_version)
+          SELECT email,phone,password_hash,'provider','active',TRUE,display_name,
+            operating_location,gps_consent_at,gps_consent_version FROM pending
+          RETURNING id,email,role,status,display_name
+        ), audit AS (
+          INSERT INTO provider_location_audit(provider_id,action,consent_version)
+          SELECT id,'accepted',$3 FROM created
+        ) SELECT * FROM created`,
+        [
+          email,
+          providedHash,
+          CONSENT_VERSION,
+          JSON.stringify(row.operating_location),
+        ],
       );
     } catch (ex) {
       if (ex?.code === "23505" && ex?.constraint === "users_email_key") {
@@ -247,7 +293,13 @@ router.post("/auth/provider/complete", async (req, res) => {
       throw ex;
     }
 
-    await query(`DELETE FROM pending_registrations WHERE email=$1`, [email]);
+    if (!created.rows.length)
+      return res
+        .status(409)
+        .json({
+          error:
+            "Registration changed or completed. Please sign in or restart.",
+        });
 
     // ✅ Auto-login after registration (important for portal access)
     req.session.user = {
@@ -266,7 +318,7 @@ router.post("/auth/provider/complete", async (req, res) => {
 
     return res.status(201).json({ ok: true, user: created.rows[0] });
   } catch (ex) {
-    console.error("provider/complete error:", ex);
+    console.error("provider/complete failed", ex?.code || "unknown");
     return res.status(500).json({ error: "Registration failed" });
   }
 });

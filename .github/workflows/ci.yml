@@ -15,8 +15,8 @@ jobs:
         with: { node-version: '24', cache: npm }
       - run: npm ci
       - run: npm run check:secrets
-      - run: npm test
       - run: npm run install:apps
+      - run: npm test
       - run: npm run test:legacy
       - run: npm run build
       - run: npm run setup:local

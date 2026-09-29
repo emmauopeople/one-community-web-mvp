@@ -1,411 +1,346 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import appLogo from "../../assets/images/appLogo.png";
-import { skillsApi } from "../../app/api/skills.api";
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../../app/api/client";
 import SkillModal from "./SkillModal";
-
-const CATEGORY_OPTIONS = [
-  { label: "All", value: "" },
-  { label: "Carpentry", value: "carpentry" },
-  { label: "Plumbing", value: "plumbing" },
-  { label: "Cleaning", value: "cleaning" },
-  { label: "Tutor", value: "tutor" },
-  { label: "Hair/Beauty", value: "hair-beauty" },
-  { label: "Mechanic", value: "mechanic" },
-  { label: "Catering", value: "catering" },
-  { label: "Painting", value: "painting" },
-  { label: "Tailor", value: "tailor" },
-  { label: "Trucker", value: "trucker" },
+const categories = [
+  "carpentry",
+  "plumbing",
+  "cleaning",
+  "tutor",
+  "hair-beauty",
+  "mechanic",
+  "catering",
+  "painting",
+  "tailor",
+  "trucker",
 ];
-
-function norm(v) {
-  const s = String(v || "").trim();
-  return s ? s : "";
-}
-
+const readPreference = () => {
+  try {
+    return localStorage.getItem("oc-nearby") === "yes";
+  } catch {
+    return false;
+  }
+};
+const remember = (value) => {
+  try {
+    localStorage.setItem("oc-nearby", value ? "yes" : "no");
+  } catch {}
+};
 export default function SearchPage() {
-  const navigate = useNavigate();
-  const loc = useLocation();
-
-  const params = useMemo(() => new URLSearchParams(loc.search), [loc.search]);
-
-  const [q, setQ] = useState(params.get("q") || "");
-  const [category, setCategory] = useState(params.get("category") || "");
-  const [city, setCity] = useState(params.get("city") || "");
-  const [area, setArea] = useState(params.get("area") || "");
-  const [useNearMe, setUseNearMe] = useState(
-    (params.get("loc") || "") === "near",
-  );
-
-  const [gps, setGps] = useState({
-    loading: false,
-    ok: false,
-    lat: null,
-    lng: null,
-    error: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState({ type: "", text: "" });
-  const [results, setResults] = useState([]);
-
-  const [openSkillId, setOpenSkillId] = useState(null);
-
-  const noticeClass =
-    notice.type === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : notice.type === "error"
-        ? "border-orange-200 bg-orange-50 text-orange-700"
-        : "";
-
-  const pushUrl = (next) => {
-    const sp = new URLSearchParams();
-    if (next.q) sp.set("q", next.q);
-    if (next.category) sp.set("category", next.category);
-    if (next.city) sp.set("city", next.city);
-    if (next.area) sp.set("area", next.area);
-    if (next.loc === "near") sp.set("loc", "near");
-    navigate(`/search?${sp.toString()}`);
-  };
-
-  const requestGPS = () => {
-    setNotice({ type: "", text: "" });
-    setGps({ loading: true, ok: false, lat: null, lng: null, error: "" });
-
-    if (!navigator.geolocation) {
-      setGps({
-        loading: false,
-        ok: false,
-        lat: null,
-        lng: null,
-        error: "Geolocation not supported",
+  const initial = new URLSearchParams(window.location.search);
+  const [q, setQ] = useState(initial.get("q") || ""),
+    [category, setCategory] = useState(initial.get("category") || "");
+  const [city, setCity] = useState(initial.get("city") || ""),
+    [results, setResults] = useState([]),
+    [geo, setGeo] = useState(null);
+  const [radius, setRadius] = useState(20),
+    [loading, setLoading] = useState(false),
+    [locating, setLocating] = useState(false);
+  const [error, setError] = useState(""),
+    [geoMessage, setGeoMessage] = useState(""),
+    [page, setPage] = useState(1),
+    [hasMore, setHasMore] = useState(false),
+    [openSkillId, setOpenSkillId] = useState(null);
+  const request = useRef(null),
+    locationRequest = useRef(0),
+    activeSearch = useRef(null);
+  async function search({
+    location = geo,
+    nextPage = 1,
+    searchRadius = radius,
+    criteria = { q, category, city },
+  } = {}) {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setLoading(true);
+    setError("");
+    const params = {
+      q: criteria.q,
+      category: criteria.category,
+      city: location ? "" : criteria.city,
+      page: nextPage,
+      ...(location
+        ? { lat: location.lat, lng: location.lng, radius_km: searchRadius }
+        : {}),
+    };
+    activeSearch.current = { location, searchRadius, criteria };
+    try {
+      const { data } = await api.get("/skills/search", {
+        params,
+        signal: controller.signal,
       });
-      setNotice({
-        type: "error",
-        text: "Geolocation not supported on this device/browser.",
-      });
+      if (controller.signal.aborted) return;
+      setResults((old) =>
+        nextPage === 1 ? data.results : [...old, ...data.results],
+      );
+      setHasMore(data.hasMore);
+      setPage(nextPage);
+    } catch (e) {
+      if (!controller.signal.aborted) {
+        setResults([]);
+        setHasMore(false);
+        setError(
+          e.response?.data?.error ||
+            "Unable to load services. Check your connection and retry.",
+        );
+      }
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
+  }
+  function locate() {
+    const id = ++locationRequest.current;
+    setLocating(true);
+    setGeoMessage("");
+    const fail = () => {
+      if (id !== locationRequest.current) return;
+      setLocating(false);
+      setGeo(null);
+      remember(false);
+      setGeoMessage(
+        "Location unavailable. Search by city or area instead. Browser GPS needs HTTPS or localhost.",
+      );
+      search({ location: null });
+    };
+    if (!window.isSecureContext || !navigator.geolocation) {
+      fail();
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = pos?.coords?.latitude;
-        const lng = pos?.coords?.longitude;
-        if (typeof lat !== "number" || typeof lng !== "number") {
-          setGps({
-            loading: false,
-            ok: false,
-            lat: null,
-            lng: null,
-            error: "Invalid coordinates",
-          });
-          setNotice({
-            type: "error",
-            text: "Unable to read location. Try again.",
-          });
-          return;
-        }
-        setGps({ loading: false, ok: true, lat, lng, error: "" });
+        if (id !== locationRequest.current) return;
+        const location = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setLocating(false);
+        setGeo(location);
+        remember(true);
+        search({ location });
       },
-      (err) => {
-        setGps({
-          loading: false,
-          ok: false,
-          lat: null,
-          lng: null,
-          error: err?.message || "Denied",
-        });
-        setNotice({
-          type: "error",
-          text: "Location permission denied/unavailable. Turn on location or search by city or area.",
-        });
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 2 * 60 * 1000 },
+      fail,
+      { timeout: 15000, maximumAge: 60000, enableHighAccuracy: false },
     );
-  };
-
-  const runSearch = async ({ qVal, catVal, cityVal, areaVal, near }) => {
-    setLoading(true);
-    setNotice({ type: "", text: "" });
-
-    try {
-      const searchParams = {
-        q: norm(qVal),
-        category: norm(catVal),
-        city: near ? "" : norm(cityVal),
-        area: near ? "" : norm(areaVal),
-      };
-
-      if (near) {
-        if (!gps.ok) {
-          setNotice({
-            type: "error",
-            text: "Enable location (GPS) for near-me results.",
-          });
-          setResults([]);
-          return;
-        }
-        searchParams.lat = gps.lat;
-        searchParams.lng = gps.lng;
-        searchParams.radius_km = 20;
-      }
-
-      const data = await skillsApi.publicSearch(searchParams);
-      setResults(data?.results || []);
-      if ((data?.results || []).length === 0) {
-        setNotice({
-          type: "error",
-          text: "No results found. Try another service, city, or area.",
-        });
-      }
-    } catch (e) {
-      setNotice({
-        type: "error",
-        text: e?.response?.data?.error || e?.message || "Search failed.",
-      });
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sync URL -> state + search
+  }
+  function disableNear() {
+    ++locationRequest.current;
+    setLocating(false);
+    setGeo(null);
+    remember(false);
+    setGeoMessage("Showing general results.");
+    search({ location: null });
+  }
   useEffect(() => {
-    const sp = new URLSearchParams(loc.search);
-    const nextQ = sp.get("q") || "";
-    const nextCat = sp.get("category") || "";
-    const nextCity = sp.get("city") || "";
-    const nextArea = sp.get("area") || "";
-    const nextNear = (sp.get("loc") || "") === "near";
-
-    setQ(nextQ);
-    setCategory(nextCat);
-    setCity(nextCity);
-    setArea(nextArea);
-    setUseNearMe(nextNear);
-
-    if (nextNear && !gps.ok && !gps.loading) {
-      requestGPS();
-    } else {
-      runSearch({
-        qVal: nextQ,
-        catVal: nextCat,
-        cityVal: nextCity,
-        areaVal: nextArea,
-        near: nextNear,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loc.search]);
-
-  // If GPS becomes available after asking, re-run near search automatically
-  useEffect(() => {
-    if (useNearMe && gps.ok) {
-      runSearch({
-        qVal: q,
-        catVal: category,
-        cityVal: city,
-        areaVal: area,
-        near: true,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gps.ok]);
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-    pushUrl({
-      q: norm(q),
-      category: norm(category),
-      city: norm(city),
-      area: norm(area),
-      loc: useNearMe ? "near" : "",
-    });
-  };
-
+    if (readPreference()) locate();
+    else search({ location: null });
+    return () => {
+      request.current?.abort();
+      ++locationRequest.current;
+    };
+  }, []);
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
-      <header className="w-full sticky top-0 z-10 bg-gray-100 border-b border-gray-200">
-        <div className="w-full px-4 sm:px-6 lg:px-10 h-14 flex items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-gray-900 font-semibold"
-          >
-            <img
-              src={appLogo}
-              alt="One Community logo"
-              className="h-8 w-8 object-contain"
-            />
-            <span className="text-base sm:text-lg">One Community</span>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="border-b bg-white">
+        <div className="max-w-5xl mx-auto p-4 flex flex-wrap justify-between gap-3 items-center">
+          <Link to="/" className="font-bold text-lg text-blue-800">
+            One Community
           </Link>
-
           <Link
             to="/provider/auth"
-            className="h-10 px-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition text-sm"
+            className="text-sm font-semibold text-emerald-800"
           >
-            Provider Portal
+            Become a provider / Sign in
           </Link>
         </div>
       </header>
-
-      {/* Full-width main (no max-w “50%” effect) */}
-      <main className="flex-1 w-full px-3 sm:px-6 lg:px-10 2xl:px-16 py-5">
-        {/* Search controls */}
+      <main className="max-w-5xl mx-auto px-4 py-5 space-y-5">
+        <div>
+          <p className="text-emerald-700 text-sm font-semibold">
+            LOCAL SERVICES, DIRECT CONNECTIONS
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold mt-1">
+            Find a service in your community
+          </h1>
+        </div>
         <form
-          onSubmit={onSubmit}
-          className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            search();
+          }}
+          className="bg-white border rounded-2xl p-4 space-y-3"
         >
-          <div className="text-sm font-semibold">Search skills</div>
-
-          <div className="mt-3 space-y-3">
-            <input
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              placeholder="What do you need? (plumber, tailor…)"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="block font-semibold" htmlFor="service-search">
+            What do you need?
+          </label>
+          <input
+            id="service-search"
+            className="w-full border rounded-xl p-3"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Plumber Emana, tailor Bonaberi…"
+            maxLength={200}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="bg-blue-700 text-white rounded-xl px-5 py-3 disabled:opacity-50"
+              disabled={loading || locating}
+            >
+              {loading ? "Searching…" : "Search"}
+            </button>
+            <button
+              type="button"
+              className="border border-emerald-700 text-emerald-800 rounded-xl px-4 py-3 disabled:opacity-50"
+              disabled={locating}
+              onClick={geo ? disableNear : locate}
+            >
+              {locating
+                ? "Locating…"
+                : geo
+                  ? "Turn off nearby"
+                  : "Use my location"}
+            </button>
+          </div>
+          <p className="text-xs text-slate-600">
+            Location is optional and used for this search, without background
+            tracking.
+          </p>
+          {geo && (
+            <label className="block text-sm">
+              Search radius{" "}
               <select
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                aria-label="Search radius"
+                className="p-2 border rounded-lg"
+                value={radius}
+                onChange={(e) => {
+                  const r = Number(e.target.value);
+                  setRadius(r);
+                  search({ searchRadius: r });
+                }}
               >
-                {CATEGORY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
+                {[5, 20, 50, 100].map((r) => (
+                  <option key={r} value={r}>
+                    {r} km
                   </option>
                 ))}
               </select>
-
-              <input
-                className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 ${
-                  useNearMe ? "opacity-60" : ""
-                }`}
-                placeholder="City (e.g., Yaounde)"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                disabled={useNearMe}
-              />
-
-              <input
-                className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 ${
-                  useNearMe ? "opacity-60" : ""
-                }`}
-                placeholder="Area (e.g., Emana, Mvog-Mbi)"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-                disabled={useNearMe}
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={useNearMe}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setUseNearMe(checked);
-                    if (checked) requestGPS();
-                  }}
-                />
-                Near me (GPS)
-              </label>
-
-              <button
-                type="button"
-                onClick={requestGPS}
-                className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-medium hover:bg-slate-100"
-              >
-                Use GPS
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
-            >
-              Search
-            </button>
-
-            {gps.loading ? (
-              <div className="text-xs text-slate-600">Getting location…</div>
-            ) : null}
-            {gps.error ? (
-              <div className="text-xs text-orange-700">GPS: {gps.error}</div>
-            ) : null}
-          </div>
-        </form>
-
-        {notice.text ? (
-          <div
-            className={`mt-4 rounded-xl border px-3 py-2 text-sm ${noticeClass}`}
-          >
-            {notice.text}
-          </div>
-        ) : null}
-
-        {/* Results: 2 columns on phone */}
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-          {loading ? (
-            <div className="col-span-2 text-sm text-slate-600">
-              Loading results…
-            </div>
-          ) : (
-            results.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setOpenSkillId(r.id)}
-                className="text-left bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition"
-              >
-                <div className="h-28 sm:h-40 w-full bg-slate-100">
-                  {r.indexImageUrl ? (
-                    <img
-                      src={r.indexImageUrl}
-                      alt={r.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-xs text-slate-500">
-                      No image
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-2 sm:p-3">
-                  <div className="text-sm font-semibold truncate">
-                    {r.title}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-600 truncate">
-                    {r.category} • {r.area || r.city}
-                  </div>
-                  {typeof r.distance_km === "number" ? (
-                    <div className="mt-1 text-xs text-slate-500">
-                      {r.distance_km.toFixed(1)} km
-                    </div>
-                  ) : null}
-                </div>
-              </button>
-            ))
+            </label>
           )}
-        </div>
+          <details>
+            <summary className="text-sm cursor-pointer py-2">
+              Optional filters
+            </summary>
+            <div className="grid sm:grid-cols-2 gap-3 mt-2">
+              <label className="text-sm">
+                Category
+                <select
+                  className="block w-full p-3 border rounded-xl"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                Town / city
+                <input
+                  disabled={Boolean(geo)}
+                  className="block w-full p-3 border rounded-xl"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Douala"
+                />
+              </label>
+            </div>
+          </details>
+          {geoMessage && (
+            <p role="status" className="text-sm text-slate-600">
+              {geoMessage}
+            </p>
+          )}
+        </form>
+        <section aria-label="Service listings" aria-busy={loading}>
+          <h2 className="font-bold text-xl mb-3">
+            {geo
+              ? `Nearby services · within ${radius} km`
+              : "Available services"}
+          </h2>
+          {error ? (
+            <div role="alert" className="border rounded-xl bg-white p-4">
+              <p>{error}</p>
+              <button
+                className="text-blue-700 underline p-2"
+                onClick={() => search()}
+              >
+                Retry
+              </button>
+            </div>
+          ) : !loading && results.length === 0 ? (
+            <p className="bg-white rounded-xl p-5 border">
+              No services found
+              {geo
+                ? " within this radius. Choose a wider radius or turn off nearby."
+                : ". Try a service, city or area."}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-3 gap-3">
+            {results.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setOpenSkillId(s.id)}
+                className="text-left overflow-hidden rounded-2xl bg-white border shadow-sm focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                {s.indexImageUrl ? (
+                  <img
+                    src={s.indexImageUrl}
+                    alt=""
+                    loading="lazy"
+                    width="320"
+                    height="200"
+                    className="w-full h-32 sm:h-40 object-cover"
+                  />
+                ) : (
+                  <div className="h-24 sm:h-32 bg-emerald-50 flex items-center justify-center text-emerald-800 text-sm">
+                    Local service
+                  </div>
+                )}
+                <div className="p-3">
+                  <h3 className="font-bold break-words">{s.title}</h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {[s.area, s.city].filter(Boolean).join(", ")}
+                  </p>
+                  <p className="text-xs text-emerald-800 mt-1">
+                    {s.category}
+                    {s.distance_km != null
+                      ? ` · about ${s.distance_km} km`
+                      : ""}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+          {hasMore && (
+            <button
+              disabled={loading}
+              className="block mx-auto mt-5 px-5 py-3 rounded-xl border bg-white"
+              onClick={() =>
+                search({ ...activeSearch.current, nextPage: page + 1 })
+              }
+            >
+              {loading ? "Loading…" : "Load more"}
+            </button>
+          )}
+        </section>
       </main>
-
-      {/* Modal */}
-      {openSkillId ? (
+      {openSkillId && (
         <SkillModal
           skillId={openSkillId}
           onClose={() => setOpenSkillId(null)}
         />
-      ) : null}
-
-      <footer className="w-full bg-white border-t border-slate-200">
-        <div className="w-full px-4 sm:px-6 lg:px-10 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} One Community
-        </div>
-      </footer>
+      )}
     </div>
   );
 }

@@ -20,6 +20,9 @@ jest.unstable_mockModule("../../src/services/eventService.js", () => ({
 
 const { default: skillsRouter } = await import("../../src/routes/skills.js");
 
+const { default: smartSearchRouter } =
+  await import("../../src/routes/smartSearch.js");
+
 function makeApp() {
   const app = express();
   app.use(express.json());
@@ -27,6 +30,7 @@ function makeApp() {
     req.session = {}; // public routes read session optionally
     next();
   });
+  app.use(smartSearchRouter);
   app.use(skillsRouter);
   return app;
 }

@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from "../middleware/requireAuth.js";
 import { logEvent } from "../services/eventService.js";
 import { presignGet } from "../services/s3.js";
 
+import { hasLocationConsent } from "../services/providerLocation.js";
 const router = express.Router();
 
 /** -------------------------
@@ -69,14 +70,21 @@ async function attachIndexImages(rows) {
 
 async function providerMustBeActive(providerId) {
   const r = await query(
-    `SELECT status FROM users WHERE id=$1 AND role='provider'`,
+    `SELECT status, operating_location, gps_consent_at, gps_consent_version, gps_consent_withdrawn_at FROM users WHERE id=$1 AND role='provider'`,
     [providerId],
   );
   const u = r.rows[0];
   if (!u) return { ok: false, code: 404, error: "Provider not found" };
   if (u.status !== "active")
     return { ok: false, code: 403, error: "Provider is inactive" };
-  return { ok: true };
+  if (!hasLocationConsent(u))
+    return {
+      ok: false,
+      code: 403,
+      error:
+        "Complete GPS consent and operating location in your provider profile first.",
+    };
+  return { ok: true, location: u.operating_location };
 }
 
 /** -------------------------
@@ -98,13 +106,17 @@ router.post(
       const tags = norm(req.body.tags);
       const description = norm(req.body.description);
 
-      const country = norm(req.body.country);
-      const region = norm(req.body.region);
-      const city = norm(req.body.city);
-      const area = norm(req.body.area);
+      const selectedLocation =
+        req.body.locationSource === "edited_for_listing"
+          ? req.body
+          : gate.location;
+      const country = norm(selectedLocation.country);
+      const region = norm(selectedLocation.region);
+      const city = norm(selectedLocation.city);
+      const area = norm(selectedLocation.area);
 
-      const lat = toNum(req.body.lat);
-      const lng = toNum(req.body.lng);
+      const lat = toNum(selectedLocation.lat);
+      const lng = toNum(selectedLocation.lng);
 
       if (!title || !category || !description)
         return res.status(400).json({ error: "Missing required fields." });
@@ -118,9 +130,9 @@ router.post(
 
       const r = await query(
         `INSERT INTO skills
-       (provider_id, title, category, tags, description, country, region, city, area, lat, lng, status)
+       (provider_id, title, category, tags, description, country, region, city, area, lat, lng, status, division, subdivision, location_source)
        VALUES
-       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'active')
+       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'active',$12,$13,$14)
        RETURNING id, title, category, tags, description, country, region, city, area, lat, lng, status, created_at, updated_at`,
         [
           providerId,
@@ -134,6 +146,11 @@ router.post(
           area,
           lat,
           lng,
+          norm(selectedLocation.division),
+          norm(selectedLocation.subdivision),
+          req.body.locationSource === "edited_for_listing"
+            ? "edited_for_listing"
+            : "provider_profile",
         ],
       );
 
@@ -185,7 +202,7 @@ router.put(
       if (!skillId) return res.status(400).json({ error: "Invalid skill id" });
 
       const owned = await query(
-        `SELECT id FROM skills WHERE id=$1 AND provider_id=$2`,
+        `SELECT id,location_source FROM skills WHERE id=$1 AND provider_id=$2`,
         [skillId, providerId],
       );
       if (owned.rowCount === 0)
@@ -196,13 +213,17 @@ router.put(
       const tags = norm(req.body.tags);
       const description = norm(req.body.description);
 
-      const country = norm(req.body.country);
-      const region = norm(req.body.region);
-      const city = norm(req.body.city);
-      const area = norm(req.body.area);
+      const selectedLocation =
+        req.body.locationSource === "provider_profile"
+          ? gate.location
+          : req.body;
+      const country = norm(selectedLocation.country);
+      const region = norm(selectedLocation.region);
+      const city = norm(selectedLocation.city);
+      const area = norm(selectedLocation.area);
 
-      const lat = toNum(req.body.lat);
-      const lng = toNum(req.body.lng);
+      const lat = toNum(selectedLocation.lat);
+      const lng = toNum(selectedLocation.lng);
 
       if (!title || !category || !description)
         return res.status(400).json({ error: "Missing required fields." });
@@ -218,6 +239,7 @@ router.put(
         `UPDATE skills
        SET title=$3, category=$4, tags=$5, description=$6,
            country=$7, region=$8, city=$9, area=$10, lat=$11, lng=$12,
+           division=COALESCE($13,division), subdivision=COALESCE($14,subdivision), location_source=$15,
            updated_at=NOW()
        WHERE id=$1 AND provider_id=$2
        RETURNING id, title, category, tags, description, country, region, city, area, lat, lng, status, created_at, updated_at`,
@@ -234,6 +256,9 @@ router.put(
           area,
           lat,
           lng,
+          selectedLocation.division ?? null,
+          selectedLocation.subdivision ?? null,
+          req.body.locationSource || owned.rows[0].location_source,
         ],
       );
 
@@ -273,142 +298,6 @@ router.delete(
 /** -------------------------
  * Public: Search (case-insensitive; supports country, region, city, area, category, q, and GPS)
  * ------------------------*/
-router.get("/skills/search", async (req, res) => {
-  try {
-    const country = normLower(req.query.country);
-    const region = normLower(req.query.region);
-    const city = normLower(req.query.city);
-    const area = normLower(req.query.area);
-
-    // MUTUAL EXCLUSIVE (backend-safe):
-    // if q present -> ignore category
-    const q = norm(req.query.q);
-    const category = q ? "" : normLower(req.query.category);
-
-    const lat = toNum(req.query.lat);
-    const lng = toNum(req.query.lng);
-    const radiusKm = toNum(req.query.radius_km);
-
-    const params = [];
-    let where = `
-      WHERE s.status='active'
-        AND u.status='active'
-        AND u.role='provider'
-    `;
-
-    if (country) {
-      params.push(country);
-      where += ` AND LOWER(s.country) = $${params.length}`;
-    }
-    if (region) {
-      params.push(region);
-      where += ` AND LOWER(s.region) = $${params.length}`;
-    }
-    if (city) {
-      params.push(city);
-      where += ` AND LOWER(s.city) = $${params.length}`;
-    }
-    if (area) {
-      params.push(`%${area}%`);
-      where += ` AND LOWER(s.area) LIKE $${params.length}`;
-    }
-    if (category) {
-      params.push(category);
-      where += ` AND LOWER(s.category) = $${params.length}`;
-    }
-
-    if (q) {
-      params.push(`%${q}%`);
-      const p = `$${params.length}`;
-      where += ` AND (s.title ILIKE ${p} OR s.description ILIKE ${p} OR s.tags ILIKE ${p} OR s.area ILIKE ${p} OR s.city ILIKE ${p} OR s.region ILIKE ${p})`;
-    }
-
-    const hasGeo = Number.isFinite(lat) && Number.isFinite(lng);
-
-    let sql;
-
-    if (hasGeo) {
-      const latParam = params.length + 1;
-      const lngParam = params.length + 2;
-
-      params.push(lat, lng);
-
-      const distanceExpr = `
-        (6371 * 2 * ASIN(SQRT(
-          POWER(SIN(RADIANS(s.lat - $${latParam}) / 2), 2) +
-          COS(RADIANS($${latParam})) * COS(RADIANS(s.lat)) *
-          POWER(SIN(RADIANS(s.lng - $${lngParam}) / 2), 2)
-        )))
-      `;
-
-      if (Number.isFinite(radiusKm)) {
-        params.push(radiusKm);
-        where += ` AND ${distanceExpr} <= $${params.length}`;
-      }
-
-      sql = `
-        SELECT
-          s.id, s.title, s.category, s.tags, s.description,
-          s.country, s.region, s.city, s.area, s.lat, s.lng, s.created_at,
-          u.id AS provider_id, u.email AS provider_email, u.phone AS provider_phone,
-          u.display_name,
-          ${distanceExpr} AS distance_km
-        FROM skills s
-        JOIN users u ON u.id = s.provider_id
-        ${where}
-        ORDER BY distance_km ASC, s.created_at DESC
-        LIMIT 50
-      `;
-    } else {
-      sql = `
-        SELECT
-          s.id, s.title, s.category, s.tags, s.description,
-          s.country, s.region, s.city, s.area, s.lat, s.lng, s.created_at,
-          u.id AS provider_id, u.email AS provider_email, u.phone AS provider_phone,
-          u.display_name
-        FROM skills s
-        JOIN users u ON u.id = s.provider_id
-        ${where}
-        ORDER BY s.created_at DESC
-        LIMIT 50
-      `;
-    }
-
-    const userId = req.session?.user?.id || null;
-
-    // Best-effort logging (never break search)
-    try {
-      await logEvent({
-        req,
-        eventType: "search",
-        userId,
-        meta: {
-          country,
-          region,
-          city,
-          area,
-          category,
-          q,
-          lat,
-          lng,
-          radius_km: radiusKm,
-        },
-      });
-    } catch (e) {
-      console.error("SEARCH LOG EVENT ERROR:", e?.message || e);
-    }
-
-    const r = await query(sql, params);
-
-    await attachIndexImages(r.rows);
-
-    return res.json({ results: r.rows });
-  } catch (e) {
-    console.error("PUBLIC SEARCH ERROR:", e);
-    return res.status(500).json({ error: "Search failed" });
-  }
-});
-
 /** -------------------------
  * Public: Skill detail (modal)
  * Returns: { skill, media: [{ sortOrder, mimeType, url }] }
@@ -421,14 +310,14 @@ router.get("/skills/:id", async (req, res) => {
     const s = await query(
       `SELECT
         s.id, s.title, s.category, s.tags, s.description,
-        s.country, s.region, s.city, s.area, s.lat, s.lng, s.created_at,
+        s.country, s.region, s.city, s.area, s.created_at,
         u.id AS provider_id, u.email AS provider_email, u.phone AS provider_phone, u.display_name
        FROM skills s
        JOIN users u ON u.id = s.provider_id
        WHERE s.id=$1
          AND s.status='active'
          AND u.status='active'
-         AND u.role='provider'`,
+         AND u.role='provider' AND u.gps_consent_at IS NOT NULL AND u.gps_consent_version='provider-gps-v1.2' AND u.gps_consent_withdrawn_at IS NULL`,
       [skillId],
     );
 

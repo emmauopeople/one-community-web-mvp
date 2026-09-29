@@ -1,3 +1,11 @@
+# Current v1.2 acceptance
+
+The PDF v1.2 overrides the earlier per-listing consent scenarios below. Consent and location capture are mandatory at provider onboarding, not at each skill creation. Verify registration begin/completion reject omitted/false consent; valid registration persists consent; new skills inherit profile coordinates without recapture; withdrawal hides public data but preserves account access; nearby results match both clients; category cards are removed and phone-width web has no horizontal overflow.
+
+Automated coverage: tests/provider-discovery.test.mjs executes real HTTP routes and PostgreSQL WASM, including existing pending registration bypass, snapshot preservation, pagination and exact-coordinate privacy. Existing foundation tests also run. Browser checks cover 375px layout, nearby opt-in/out and consent/capture gating with mocked API responses. Physical-phone and actual Docker acceptance still follow CI.
+
+## Historical foundation test plan (superseded where noted)
+
 # MVP test cases and execution status
 
 These are acceptance cases to automate during implementation. Unless explicitly stated below, they are designed but NOT executed. Each feature must add behavioral tests and a local verification command; mock-only passes cannot substitute for database, browser or device tests.

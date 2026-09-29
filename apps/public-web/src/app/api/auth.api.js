@@ -8,22 +8,8 @@ export const authApi = {
 
   logout: async () => (await api.post("/auth/logout")).data,
 
-  beginRegistration: async ({
-    email,
-    phone,
-    method,
-    password,
-    displayName,
-  }) => {
-    const { data } = await api.post("/auth/provider/begin", {
-      email,
-      phone,
-      method,
-      password,
-      displayName,
-    });
-    return data;
-  },
+  beginRegistration: async (payload) =>
+    (await api.post("/auth/provider/begin", payload)).data,
 
   completeRegistration: async ({ email, otp }) =>
     (await api.post("/auth/provider/complete", { email, otp })).data,

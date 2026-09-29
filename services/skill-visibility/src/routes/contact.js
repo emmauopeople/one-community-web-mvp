@@ -12,7 +12,9 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
   secure: false,
-  ...(process.env.SMTP_USER ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } } : {}),
+  ...(process.env.SMTP_USER
+    ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }
+    : {}),
 });
 
 router.post("/contact/email", async (req, res) => {
@@ -35,7 +37,7 @@ router.post("/contact/email", async (req, res) => {
       `SELECT s.id, s.title, s.city, u.email AS provider_email
        FROM skills s
        JOIN users u ON u.id = s.provider_id
-       WHERE s.id=$1 AND s.status='active' AND u.status='active' AND u.role='provider'`,
+       WHERE s.id=$1 AND s.status='active' AND u.status='active' AND u.role='provider' AND u.gps_consent_at IS NOT NULL AND u.gps_consent_version='provider-gps-v1.2' AND u.gps_consent_withdrawn_at IS NULL`,
       [skillId],
     );
 

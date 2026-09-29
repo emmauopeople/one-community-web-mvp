@@ -75,13 +75,28 @@ describe("Auth routes", () => {
       .mockResolvedValueOnce({ rowCount: 1, rows: [] }); // insert pending (any ok)
 
     const app = makeApp();
-    const res = await request(app).post("/auth/provider/begin").send({
-      email: "test@example.com",
-      phone: "+12345678901",
-      password: "Passw0rd!",
-      method: "email",
-      displayName: "Test Provider",
-    });
+    const res = await request(app)
+      .post("/auth/provider/begin")
+      .send({
+        email: "test@example.com",
+        phone: "+12345678901",
+        password: "Passw0rd!",
+        method: "email",
+        gpsConsent: true,
+        consentVersion: "provider-gps-v1.2",
+        locationConfirmed: true,
+        operatingLocation: {
+          region: "Littoral",
+          division: "Wouri",
+          city: "Douala",
+          area: "Bonaberi",
+          lat: 4,
+          lng: 9,
+          accuracy: 10,
+          capturedAt: new Date().toISOString(),
+        },
+        displayName: "Test Provider",
+      });
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
@@ -95,12 +110,27 @@ describe("Auth routes", () => {
     mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{}] }); // existing user
 
     const app = makeApp();
-    const res = await request(app).post("/auth/provider/begin").send({
-      email: "test@example.com",
-      phone: "+12345678901",
-      password: "Passw0rd!",
-      method: "email",
-    });
+    const res = await request(app)
+      .post("/auth/provider/begin")
+      .send({
+        email: "test@example.com",
+        phone: "+12345678901",
+        password: "Passw0rd!",
+        method: "email",
+        gpsConsent: true,
+        consentVersion: "provider-gps-v1.2",
+        locationConfirmed: true,
+        operatingLocation: {
+          region: "Littoral",
+          division: "Wouri",
+          city: "Douala",
+          area: "Bonaberi",
+          lat: 4,
+          lng: 9,
+          accuracy: 10,
+          capturedAt: new Date().toISOString(),
+        },
+      });
 
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/Email already registered/i);

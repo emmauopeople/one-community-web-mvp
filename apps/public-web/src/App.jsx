@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import LandingPage from "./pages/Landing/LandingPage.jsx";
+import ProviderLocation from "./pages/Provider/ProviderLocation.jsx";
 import ProviderAuth from "./pages/Provider/ProviderAuth.jsx";
 import ProviderPortal from "./pages/Provider/ProviderPortal.jsx";
 import SearchPage from "./pages/Search/SearchPage.jsx";
@@ -19,7 +19,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<SearchPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/provider/auth" element={<ProviderAuth />} />
 
@@ -58,6 +58,14 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/provider/location"
+          element={
+            <ProviderGuard>
+              <ProviderLocation />
+            </ProviderGuard>
+          }
+        />
         <Route path="/search" element={<SearchPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

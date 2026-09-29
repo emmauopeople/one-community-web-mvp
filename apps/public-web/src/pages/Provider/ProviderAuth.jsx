@@ -1,3 +1,6 @@
+import OperatingLocation, {
+  emptyLocation,
+} from "../../components/OperatingLocation";
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import appLogo from "../../assets/images/appLogo.png";
@@ -38,6 +41,12 @@ export default function ProviderAuth() {
   const [regPassword, setRegPassword] = useState("");
   const [regStarted, setRegStarted] = useState(false);
 
+  const [locationSetup, setLocationSetup] = useState({
+    operatingLocation: { ...emptyLocation },
+    gpsConsent: false,
+    locationConfirmed: false,
+  });
+
   // UX
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -53,8 +62,15 @@ export default function ProviderAuth() {
     const emailOk = regEmail.trim();
     const phoneOk = regPhone.trim() && isValidPhone(regPhone);
     const passOk = regPassword.trim().length >= 8;
-    return nameOk && emailOk && phoneOk && passOk;
-  }, [regDisplayName, regEmail, regPhone, regPassword]);
+    return (
+      nameOk &&
+      emailOk &&
+      phoneOk &&
+      passOk &&
+      locationSetup.gpsConsent &&
+      locationSetup.locationConfirmed
+    );
+  }, [regDisplayName, regEmail, regPhone, regPassword, locationSetup]);
 
   const canCompleteReg = useMemo(() => {
     return regStarted && regEmail.trim() && regCode.trim().length === 6;
@@ -110,6 +126,7 @@ export default function ProviderAuth() {
     setBusy(true);
     try {
       const data = await authApi.beginRegistration({
+        ...locationSetup,
         displayName: regDisplayName.trim(),
         email: regEmail.trim(),
         phone: regPhone.trim(),
@@ -326,6 +343,13 @@ export default function ProviderAuth() {
                     disabled={busy || regStarted}
                   />
 
+                  {!regStarted && (
+                    <OperatingLocation
+                      value={locationSetup}
+                      onChange={setLocationSetup}
+                      disabled={busy}
+                    />
+                  )}
                   {!regStarted ? (
                     <>
                       <input

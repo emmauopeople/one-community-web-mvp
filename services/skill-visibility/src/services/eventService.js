@@ -34,7 +34,7 @@ export async function logEvent({
   } = meta;
 
   // Optional light dedupe for accidental duplicate skill views in dev/strict mode
-  if (eventType === "skill_view" && resolvedSkillId) {
+  if (eventType === "skill_view" && resolvedSkillId && userId != null) {
     const existing = await query(
       `SELECT id
        FROM events
@@ -53,8 +53,8 @@ export async function logEvent({
 
   await query(
     `INSERT INTO events
-     (event_type, user_id, skill_id, country, region, city, category, q, channel, lat, lng, radius_km, ip, user_agent)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+     (event_type, user_id, skill_id, country, region, city, category, q, channel, lat, lng, radius_km, ip, user_agent, result_count, search_mode, area)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
     [
       eventType,
       userId,
@@ -65,11 +65,14 @@ export async function logEvent({
       category,
       q,
       channel,
-      lat,
-      lng,
+      null, // Visitor GPS is request-scoped, never analytics data.
+      null,
       radius_km,
       ip,
       userAgent,
+      meta.result_count ?? null,
+      meta.search_mode ?? null,
+      meta.area ?? null,
     ],
   );
 }

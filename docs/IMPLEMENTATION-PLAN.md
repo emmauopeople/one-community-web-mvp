@@ -1,3 +1,5 @@
+> Current baseline: PDF v1.2 and V1.2-IMPLEMENTATION.md. Historical audit findings below are not a claim of current completion.
+
 # One Community MVP: repository review and implementation plan
 
 Date: 2026-09-29. This is an analysis and proposed implementation sequence, not a claim that the upgrade has been implemented.
@@ -14,19 +16,13 @@ Keep public discovery usable without login. Preserve the approved mobile two-col
 
 ## Low-bandwidth Cameroon requirement
 
-### GPS requirement — latest user decision
+### GPS requirement - v1.2 supersedes previous per-listing consent
 
-Every skill listing must have a consented GPS location to support Near Me. This overrides the PDF's optional listing coordinates and its future-only Near Me direction. Near Me is now an MVP acceptance requirement.
+Mandatory GPS-use consent and successful operating-location capture occur during provider account onboarding. Without consent, account creation cannot complete, including through direct API or OTP completion. Store consent version/time and capture metadata. Existing providers complete a backfill setup rather than being silently marked consenting.
 
-- Providers explicitly consent to capture the location for each listing and grant the device/browser location permission. An existing OS permission alone is not evidence of consent to attach a location to a new listing.
-- Each listing owns its own captured location snapshot: latitude, longitude, accuracy in meters, capture timestamp, source and consent timestamp/version. Do not silently substitute a provider profile coordinate or an IP-derived location for required capture.
-- Explain that capture uses the device's current position and ask the provider to confirm it represents the listing's operating location. GPS is not proof of a business address or a verification badge. No continuous background tracking is needed.
-- Providers can save an incomplete draft if permission is denied, positioning fails or they are offline. Submission for review/publication requires a valid consented location. Existing listings without GPS need a backfill/recapture workflow before becoming eligible for the upgraded public catalog; do not unpublish existing production data during migration without a planned cutover.
-- Validate coordinate ranges and reject invalid values server-side. Establish a measured accuracy policy with a clear retry path; do not invent coordinates when capture is unreliable. For listing location changes, capture and confirm the replacement rather than overwriting silently.
-- Public users opt into Near Me and grant device/browser location permission only when they request it. If denied, unavailable or revoked, ordinary city/area/text search remains usable. Explain radius and distance sorting; use distance from the captured listing position, not the provider's account location.
-- Treat the public user's location as request-scoped by default. Do not persist exact visitor coordinates in analytics or logs. Return approximate distance and useful area/city context without exposing a provider's exact coordinates in public response payloads by default. Any later exact-pin display requires an explicit product decision and appropriate provider disclosure.
-- Near Me must work as a compact list without loading a map. Limit/validate radius, paginate results, and filter to currently eligible listings. Any cached Near Me results must identify their age and search area and must not be mistaken for fresh positioning.
+Each new skill inherits the saved provider operating location without repeated consent or fresh capture. Keep a listing snapshot. Location overrides or profile updates must be deliberate; do not silently move existing skills. Public Near Me remains opt-in, paginated and consistent across mobile/web; manual search works when location is denied. Never persist precise visitor coordinates in analytics or expose exact provider GPS publicly by default.
 
+Public web is mobile-first and listing-led, with the category-card section removed. Keep optional compact filters. See the v1.2 PDF and V1.2-IMPLEMENTATION.md for the current baseline and verified scope.
 
 User-confirmed constraint: the MVP must work in low-bandwidth areas of Cameroon. This affects the first implementation batches, not only final performance tuning. The thresholds below are initial engineering budgets to validate on actual devices and local networks, not measured performance claims.
 

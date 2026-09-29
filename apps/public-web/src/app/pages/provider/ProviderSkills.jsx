@@ -93,85 +93,24 @@ export default function ProviderSkills() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(empty);
 
-  // Geo capture (lat/lng not shown)
-  const [geo, setGeo] = useState({
-    loading: false,
-    ok: false,
-    denied: false,
-    error: "",
-    lat: null,
-    lng: null,
-  });
-
-  const requestGeo = () => {
-    clearNotice();
-    setGeo((p) => ({ ...p, loading: true, error: "", denied: false }));
-
-    if (!navigator.geolocation) {
-      setGeo((p) => ({
-        ...p,
-        loading: false,
-        ok: false,
-        denied: true,
-        error: "Geolocation not supported",
-      }));
-      showError(
-        "Geolocation not supported. You need location enabled to create skills.",
-      );
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos?.coords?.latitude;
-        const lng = pos?.coords?.longitude;
-
-        if (typeof lat !== "number" || typeof lng !== "number") {
-          setGeo({
-            loading: false,
-            ok: false,
-            denied: true,
-            error: "Invalid GPS coords",
-            lat: null,
-            lng: null,
-          });
-          showError("Unable to read location. Please try again.");
-          return;
-        }
-
-        setGeo({
-          loading: false,
-          ok: true,
-          denied: false,
-          error: "",
-          lat,
-          lng,
-        });
-        setForm((p) => ({ ...p, lat: String(lat), lng: String(lng) }));
-      },
-      (err) => {
-        const denied = err?.code === 1;
-        setGeo({
-          loading: false,
-          ok: false,
-          denied: true,
-          error: err?.message || "Location denied",
-          lat: null,
-          lng: null,
-        });
-        showError(
-          denied
-            ? "Location permission is required to create skills. Enable location and try again."
-            : "Unable to get location. Try again.",
-        );
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 2 * 60 * 1000 },
-    );
-  };
-
+  const [profileLocation, setProfileLocation] = useState(null);
+  const [locationReady, setLocationReady] = useState(false);
   useEffect(() => {
-    requestGeo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    api
+      .get("/provider/profile")
+      .then(({ data }) => {
+        const profile = data.profile;
+        const ready = Boolean(
+          profile.gps_consent_at &&
+          !profile.gps_consent_withdrawn_at &&
+          profile.operating_location,
+        );
+        setLocationReady(ready);
+        setProfileLocation(profile.operating_location);
+        if (ready)
+          setForm((current) => ({ ...current, ...profile.operating_location }));
+      })
+      .catch(() => showError("Unable to load operating location."));
   }, []);
 
   const load = async () => {
@@ -197,8 +136,7 @@ export default function ProviderSkills() {
     setEditingId(null);
     setForm({
       ...empty,
-      lat: geo.lat != null ? String(geo.lat) : "",
-      lng: geo.lng != null ? String(geo.lng) : "",
+      ...profileLocation,
     });
     setCategorySelect("");
     setCategoryOther("");
@@ -249,13 +187,14 @@ export default function ProviderSkills() {
     const lngNum = Number(form.lng);
     if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
       return showError(
-        "GPS location is required. Enable location and try again.",
+        "Complete your operating location in provider settings first.",
       );
     }
 
     try {
       const payload = {
         ...form,
+        locationSource: editingId ? form.locationSource : "provider_profile",
         category: resolvedCategory,
         lat: latNum,
         lng: lngNum,
@@ -476,31 +415,16 @@ export default function ProviderSkills() {
           </div>
         ) : null}
 
-        {/* GPS status */}
-        <div className="mb-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold">Location</div>
-              <div className="text-xs text-slate-600 mt-1">
-                {geo.loading
-                  ? "Getting your location…"
-                  : geo.ok
-                    ? "GPS location captured (used for nearby search)."
-                    : "Location permission is required to create skills."}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={requestGeo}
-              disabled={geo.loading}
-              className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-medium hover:bg-slate-100 disabled:opacity-60"
-            >
-              {geo.loading ? "Trying…" : "Try again"}
-            </button>
-          </div>
+        <div className="mb-4 rounded-xl border p-3 text-sm bg-white">
+          {locationReady
+            ? "New skills use your saved operating location. No new GPS capture is needed."
+            : "Complete location setup before creating or publishing skills."}{" "}
+          <Link className="text-blue-700 underline" to="/provider/location">
+            Manage operating location and consent
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Left: list */}
           <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
             {/* Header row with mobile New skill button */}
@@ -665,45 +589,38 @@ export default function ProviderSkills() {
                 }
               />
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <input
-                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  placeholder="Country (e.g., CM)"
-                  value={form.country}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, country: e.target.value }))
-                  }
-                />
-                <input
-                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  placeholder="Region/Province"
-                  value={form.region}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, region: e.target.value }))
-                  }
-                />
-                <input
-                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  placeholder="City"
-                  value={form.city}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, city: e.target.value }))
-                  }
-                />
-                <input
-                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  placeholder="Area/Town"
-                  value={form.area}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, area: e.target.value }))
-                  }
-                />
+              <div className="rounded-xl bg-slate-50 p-3 text-sm">
+                <strong>
+                  {editingId
+                    ? "Saved listing location"
+                    : "Provider operating location"}
+                </strong>
+                <p>
+                  {[form.area, form.city, form.region]
+                    .filter(Boolean)
+                    .join(", ") || "Complete provider location setup."}
+                </p>
+                {editingId && (
+                  <button
+                    type="button"
+                    className="text-blue-700 underline p-2"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        ...profileLocation,
+                        locationSource: "provider_profile",
+                      }))
+                    }
+                  >
+                    Use current profile location for this listing
+                  </button>
+                )}
               </div>
 
               <button
                 type="button"
                 onClick={save}
-                disabled={geo.loading || !geo.ok}
+                disabled={!locationReady}
                 className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 disabled:opacity-60"
               >
                 {editingId ? "Save changes" : "Create skill"}
