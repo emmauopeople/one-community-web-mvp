@@ -1,0 +1,28 @@
+name: Foundation CI
+on:
+  push:
+    branches: ['feature/**', release, main]
+  pull_request:
+    branches: [release, main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
+      - run: npm run check:secrets
+      - run: npm test
+      - run: npm run install:apps
+      - run: npm run test:legacy
+      - run: npm run build
+      - run: npm run setup:local
+      - run: docker compose config --quiet
+      - run: docker compose up --build -d
+      - run: docker compose run --rm seed
+      - run: npm run test:smoke
+      - if: always()
+        run: docker compose down
