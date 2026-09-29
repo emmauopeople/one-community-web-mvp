@@ -1,0 +1,30 @@
+[
+  {
+    "source": "emmauopeople/1community_app",
+    "commit": "0e24e069323bbb8099b7d1ae6b16a1a5d33f5406",
+    "sourcePath": "backend",
+    "destination": "services/skill-visibility",
+    "files": 34
+  },
+  {
+    "source": "emmauopeople/1community_app",
+    "commit": "0e24e069323bbb8099b7d1ae6b16a1a5d33f5406",
+    "sourcePath": "frontend",
+    "destination": "apps/public-web",
+    "files": 38
+  },
+  {
+    "source": "emmauopeople/one-community-admin",
+    "commit": "15fef8ac38e794a1b18cef83bd41d747fe49396c",
+    "sourcePath": "admin-backend",
+    "destination": "apps/admin-api",
+    "files": 22
+  },
+  {
+    "source": "emmauopeople/one-community-admin",
+    "commit": "15fef8ac38e794a1b18cef83bd41d747fe49396c",
+    "sourcePath": "admin-frontend",
+    "destination": "apps/admin-web",
+    "files": 49
+  }
+]
