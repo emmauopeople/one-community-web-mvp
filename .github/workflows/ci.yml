@@ -22,7 +22,7 @@ jobs:
       - run: npm run setup:local
       - run: docker compose config --quiet
       - run: docker compose up --build -d
-      - run: docker compose run --rm seed
+      - run: docker compose run --build --rm seed
       - run: npm run test:smoke
       - if: always()
         run: docker compose down
