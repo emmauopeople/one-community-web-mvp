@@ -1,3 +1,5 @@
+> **Mobile UI v1.3:** see `docs/V1.3-MOBILE-UI.md` and the v1.3 PDF for the current mobile design and migration 004.
+
 > **Current feature: provider location and nearby discovery (v1.2).** Read `docs/V1.2-IMPLEMENTATION.md` for current behavior, upgrade requirements and remaining scope. The foundation notes below describe the earlier baseline.
 
 # One Community Web MVP

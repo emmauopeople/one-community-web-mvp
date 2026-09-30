@@ -55,7 +55,7 @@ router.get(
     const userId = req.session.user.id;
 
     const r = await query(
-      `SELECT id, email, phone, role, status, display_name, created_at, updated_at, operating_location, gps_consent_at, gps_consent_version, gps_consent_withdrawn_at
+      `SELECT id, email, phone, role, status, display_name, created_at, updated_at, first_name, last_name, business_name, operating_location, gps_consent_at, gps_consent_version, gps_consent_withdrawn_at
      FROM users
      WHERE id=$1 AND role='provider'`,
       [userId],

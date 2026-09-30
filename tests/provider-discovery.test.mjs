@@ -147,17 +147,25 @@ test("real routes and PostgreSQL: consent, OTP, inheritance, discovery and withd
       assert.match(result.body.error, /consent/i);
     },
   );
+  await t.test('structured names are validated before registration', async () => {
+    for (const names of [{firstName:'',lastName:'Doe'}, {firstName:'Jane'}, {firstName:'Jane',lastName:'Doe',businessName:[]}, {firstName:'A'.repeat(61),lastName:'Doe'}]) {
+      const response=await agent.post('/auth/provider/begin').send({...credentials,...setup(),...names});
+      assert.equal(response.status,400);
+    }
+  });
   await t.test(
     "valid onboarding completes once with an audit trail and login session",
     async () => {
       const begin = await agent
         .post("/auth/provider/begin")
-        .send({ ...credentials, ...setup() });
+        .send({ ...credentials, ...setup(), firstName:"Jane", lastName:"Doe", businessName:"Jane Services" });
       assert.equal(begin.status, 200, JSON.stringify(begin.body));
       const complete = await agent
         .post("/auth/provider/complete")
         .send({ email: credentials.email, otp: globalThis.__otp });
       assert.equal(complete.status, 201, JSON.stringify(complete.body));
+      const saved=(await db.query('SELECT first_name,last_name,business_name,display_name FROM users WHERE email=$1',[credentials.email])).rows[0];
+      assert.deepEqual(saved,{first_name:'Jane',last_name:'Doe',business_name:'Jane Services',display_name:'Jane Services'});
       assert.equal(
         (
           await db.query(

@@ -52,7 +52,37 @@ router.post("/auth/provider/begin", async (req, res) => {
     const phone = normalizePhone(req.body.phone);
     const password = String(req.body.password || "");
     const method = String(req.body.method || "email").toLowerCase();
-    const displayName = String(req.body.displayName || "").trim();
+    const named = ["firstName", "lastName", "businessName"].some(
+      (key) => key in req.body,
+    );
+    const firstName =
+      typeof req.body.firstName === "string" ? req.body.firstName.trim() : "";
+    const lastName =
+      typeof req.body.lastName === "string" ? req.body.lastName.trim() : "";
+    const businessName =
+      typeof req.body.businessName === "string"
+        ? req.body.businessName.trim()
+        : "";
+    if (
+      named &&
+      (!firstName ||
+        !lastName ||
+        firstName.length > 60 ||
+        lastName.length > 60 ||
+        businessName.length > 60 ||
+        (req.body.businessName !== undefined &&
+          typeof req.body.businessName !== "string"))
+    ) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "First and last name are required (up to 60 characters each). Business name is optional (up to 60 characters).",
+        });
+    }
+    const displayName = named
+      ? businessName || `${firstName} ${lastName}`.slice(0, 60)
+      : String(req.body.displayName || "").trim();
 
     if (displayName && (displayName.length < 2 || displayName.length > 60)) {
       return res
@@ -119,9 +149,9 @@ router.post("/auth/provider/begin", async (req, res) => {
 
     await query(
       `INSERT INTO pending_registrations
-     (email, phone, password_hash, otp_hash, otp_expires_at, attempts, resend_count, locked_until, display_name, operating_location, gps_consent_at, gps_consent_version)
+     (email, phone, password_hash, otp_hash, otp_expires_at, attempts, resend_count, locked_until, display_name, operating_location, gps_consent_at, gps_consent_version, first_name, last_name, business_name)
    VALUES
-     ($1, $2, $3, $4, NOW() + INTERVAL '${OTP_EXPIRES_MIN} minutes', 0, 0, NULL, $5, $6::jsonb, NOW(), $7)
+     ($1, $2, $3, $4, NOW() + INTERVAL '${OTP_EXPIRES_MIN} minutes', 0, 0, NULL, $5, $6::jsonb, NOW(), $7, $8, $9, $10)
    ON CONFLICT (email)
    DO UPDATE SET
      phone=$2,
@@ -132,6 +162,7 @@ router.post("/auth/provider/begin", async (req, res) => {
      resend_count=0,
      locked_until=NULL,
      display_name=$5, operating_location=$6::jsonb, gps_consent_at=NOW(), gps_consent_version=$7,
+     first_name=$8, last_name=$9, business_name=$10,
      updated_at=NOW()`,
       [
         email,
@@ -141,6 +172,9 @@ router.post("/auth/provider/begin", async (req, res) => {
         displayName || null,
         JSON.stringify(operatingLocation),
         CONSENT_VERSION,
+        firstName || null,
+        lastName || null,
+        businessName || null,
       ],
     );
 
@@ -266,9 +300,9 @@ router.post("/auth/provider/complete", async (req, res) => {
           RETURNING *
         ), created AS (
           INSERT INTO users (email, phone, password_hash, role, status, email_verified, display_name,
-            operating_location, gps_consent_at, gps_consent_version)
+            operating_location, gps_consent_at, gps_consent_version, first_name, last_name, business_name)
           SELECT email,phone,password_hash,'provider','active',TRUE,display_name,
-            operating_location,gps_consent_at,gps_consent_version FROM pending
+            operating_location,gps_consent_at,gps_consent_version,first_name,last_name,business_name FROM pending
           RETURNING id,email,role,status,display_name
         ), audit AS (
           INSERT INTO provider_location_audit(provider_id,action,consent_version)
@@ -294,12 +328,9 @@ router.post("/auth/provider/complete", async (req, res) => {
     }
 
     if (!created.rows.length)
-      return res
-        .status(409)
-        .json({
-          error:
-            "Registration changed or completed. Please sign in or restart.",
-        });
+      return res.status(409).json({
+        error: "Registration changed or completed. Please sign in or restart.",
+      });
 
     // ✅ Auto-login after registration (important for portal access)
     req.session.user = {
