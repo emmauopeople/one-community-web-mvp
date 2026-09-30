@@ -1,19 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import DiscoveryHeader from "../../components/DiscoveryHeader";
+import WeatherWidget from "../../components/WeatherWidget";
 import { api } from "../../app/api/client";
 import SkillModal from "./SkillModal";
-const categories = [
-  "carpentry",
-  "plumbing",
-  "cleaning",
-  "tutor",
-  "hair-beauty",
-  "mechanic",
-  "catering",
-  "painting",
-  "tailor",
-  "trucker",
-];
 const readPreference = () => {
   try {
     return localStorage.getItem("oc-nearby") === "yes";
@@ -33,7 +22,7 @@ export default function SearchPage() {
   const [city, setCity] = useState(initial.get("city") || ""),
     [results, setResults] = useState([]),
     [geo, setGeo] = useState(null);
-  const [radius, setRadius] = useState(20),
+  const [radius, setRadius] = useState(10),
     [loading, setLoading] = useState(false),
     [locating, setLocating] = useState(false);
   const [error, setError] = useState(""),
@@ -98,9 +87,7 @@ export default function SearchPage() {
       setLocating(false);
       setGeo(null);
       remember(false);
-      setGeoMessage(
-        "Location unavailable. Search by city or area instead. Browser GPS needs HTTPS or localhost.",
-      );
+      setGeoMessage("Location unavailable. Search by town or area instead.");
       search({ location: null });
     };
     if (!window.isSecureContext || !navigator.geolocation) {
@@ -128,12 +115,12 @@ export default function SearchPage() {
     setLocating(false);
     setGeo(null);
     remember(false);
-    setGeoMessage("Showing general results.");
+    setGeoMessage("");
     search({ location: null });
   }
   useEffect(() => {
+    search({ location: null });
     if (readPreference()) locate();
-    else search({ location: null });
     return () => {
       request.current?.abort();
       ++locationRequest.current;
@@ -141,133 +128,78 @@ export default function SearchPage() {
   }, []);
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
-        <div className="max-w-5xl mx-auto p-4 flex flex-wrap justify-between gap-3 items-center">
-          <Link to="/" className="font-bold text-lg text-blue-800">
-            One Community
-          </Link>
-          <Link
-            to="/provider/auth"
-            className="text-sm font-semibold text-emerald-800"
-          >
-            Become a provider / Sign in
-          </Link>
-        </div>
-      </header>
-      <main className="max-w-5xl mx-auto px-4 py-5 space-y-5">
-        <div>
-          <p className="text-emerald-700 text-sm font-semibold">
-            LOCAL SERVICES, DIRECT CONNECTIONS
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold mt-1">
-            Find a service in your community
-          </h1>
-        </div>
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-4 space-y-4">
+        <DiscoveryHeader
+          category={category}
+          onCategory={(value) => {
+            setCategory(value);
+            search({ criteria: { q, category: value, city } });
+          }}
+          radius={radius}
+          onRadius={(value) => {
+            setRadius(value);
+            if (geo) search({ searchRadius: value });
+          }}
+        />
         <form
           onSubmit={(e) => {
             e.preventDefault();
             search();
           }}
-          className="bg-white border rounded-2xl p-4 space-y-3"
+          className="bg-white border border-slate-200 rounded-3xl p-4 space-y-3"
         >
-          <label className="block font-semibold" htmlFor="service-search">
-            What do you need?
+          <label className="block font-bold" htmlFor="service-search">
+            What are you looking for?
           </label>
           <input
             id="service-search"
-            className="w-full border rounded-xl p-3"
+            className="w-full border border-blue-200 bg-slate-50 rounded-2xl p-4"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Plumber Emana, tailor Bonaberi…"
+            placeholder="Service, town or area"
             maxLength={200}
           />
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="bg-blue-700 text-white rounded-xl px-5 py-3 disabled:opacity-50"
-              disabled={loading || locating}
+          <button
+            disabled={loading}
+            className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-bold py-4 disabled:opacity-60"
+          >
+            {loading ? "Searching…" : "Search"}
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-label="Use location"
+            aria-checked={Boolean(geo)}
+            disabled={locating}
+            onClick={geo ? disableNear : locate}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-blue-700 min-h-11 disabled:opacity-60"
+          >
+            <span
+              aria-hidden="true"
+              className={`inline-flex items-center w-8 h-5 p-0.5 rounded-full transition-colors ${geo ? "bg-blue-600" : "bg-slate-300"}`}
             >
-              {loading ? "Searching…" : "Search"}
-            </button>
-            <button
-              type="button"
-              className="border border-emerald-700 text-emerald-800 rounded-xl px-4 py-3 disabled:opacity-50"
-              disabled={locating}
-              onClick={geo ? disableNear : locate}
-            >
-              {locating
-                ? "Locating…"
-                : geo
-                  ? "Turn off nearby"
-                  : "Use my location"}
-            </button>
-          </div>
-          <p className="text-xs text-slate-600">
-            Location is optional and used for this search, without background
-            tracking.
-          </p>
-          {geo && (
-            <label className="block text-sm">
-              Search radius{" "}
-              <select
-                aria-label="Search radius"
-                className="p-2 border rounded-lg"
-                value={radius}
-                onChange={(e) => {
-                  const r = Number(e.target.value);
-                  setRadius(r);
-                  search({ searchRadius: r });
-                }}
-              >
-                {[5, 20, 50, 100].map((r) => (
-                  <option key={r} value={r}>
-                    {r} km
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <details>
-            <summary className="text-sm cursor-pointer py-2">
-              Optional filters
-            </summary>
-            <div className="grid sm:grid-cols-2 gap-3 mt-2">
-              <label className="text-sm">
-                Category
-                <select
-                  className="block w-full p-3 border rounded-xl"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  <option value="">All categories</option>
-                  {categories.map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm">
-                Town / city
-                <input
-                  disabled={Boolean(geo)}
-                  className="block w-full p-3 border rounded-xl"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Douala"
-                />
-              </label>
-            </div>
-          </details>
+              <span
+                className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${geo ? "translate-x-3" : ""}`}
+              />
+            </span>
+            {locating ? "Locating…" : "Use location"}
+          </button>
           {geoMessage && (
-            <p role="status" className="text-sm text-slate-600">
+            <p role="status" className="text-sm text-amber-800">
               {geoMessage}
             </p>
           )}
         </form>
+        <WeatherWidget location={geo} />
         <section aria-label="Service listings" aria-busy={loading}>
           <h2 className="font-bold text-xl mb-3">
-            {geo
-              ? `Nearby services · within ${radius} km`
-              : "Available services"}
+            {geo ? "Nearby services" : "Available services"}
           </h2>
+          {loading && results.length === 0 && (
+            <p role="status" className="text-sm text-slate-500 mb-3">
+              Loading services…
+            </p>
+          )}
           {error ? (
             <div role="alert" className="border rounded-xl bg-white p-4">
               <p>{error}</p>
@@ -291,7 +223,7 @@ export default function SearchPage() {
               <button
                 key={s.id}
                 onClick={() => setOpenSkillId(s.id)}
-                className="text-left overflow-hidden rounded-2xl bg-white border shadow-sm focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="text-left overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm focus-visible:ring-2 focus-visible:ring-blue-600"
               >
                 {s.indexImageUrl ? (
                   <img
