@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { getStartedTitle, getStartedSections } from "./getStartedContent";
 import logo from "../assets/images/appLogo.png";
 const categories = [
   "carpentry",
@@ -160,26 +161,14 @@ export default function DiscoveryHeader({
             Close
           </button>
         </div>
-        <div className="space-y-3 text-sm leading-6 mt-3">
-          <p>
-            Search for a service, town or area. Use Categories in the menu to
-            narrow results, or choose All.
-          </p>
-          <p>
-            Turn on Use location for services within 10 km. Change Distance in
-            the menu for a radius from 1 to 100 km. Visitors can search without
-            location access.
-          </p>
-          <p>
-            Open a service to see details and contact its provider. Open
-            Provider to sign in or create an account. Provider registration
-            requires GPS consent and a confirmed operating location.
-          </p>
-          <p>
-            Weather starts with Douala. Change its city or enable location to
-            see nearby weather. Weather availability never blocks service
-            listings.
-          </p>
+        <div className="space-y-5 mt-3">
+          <h3 className="text-2xl font-extrabold">{getStartedTitle}</h3>
+          {getStartedSections.map(([title, body]) => (
+            <section key={title}>
+              <h4 className="font-bold text-lg text-blue-700 mb-2">{title}</h4>
+              <p className="leading-6 text-slate-600">{body}</p>
+            </section>
+          ))}
         </div>
       </dialog>
     </header>
