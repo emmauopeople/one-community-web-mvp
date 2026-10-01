@@ -1,3 +1,5 @@
+import LanguageSwitch from "../i18n/LanguageSwitch";
+import { t, te, useLocale } from "../i18n/index.js";
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { getStartedTitle, getStartedSections } from "./getStartedContent";
@@ -20,6 +22,7 @@ export default function DiscoveryHeader({
   radius,
   onRadius,
 }) {
+  useLocale();
   const menu = useRef(null),
     help = useRef(null),
     trigger = useRef(null);
@@ -53,34 +56,34 @@ export default function DiscoveryHeader({
         />
         <Link to="/" className="min-w-0 flex-1">
           <span className="block font-semibold text-blue-800 text-base sm:text-lg">
-            One Community
+            {t("One Community")}
           </span>
           <span className="block text-xs font-semibold text-emerald-700">
-            Local service network
+            {t("Local service network")}
           </span>
         </Link>
         <details ref={menu} className="relative">
           <summary
             ref={trigger}
-            aria-label="Open menu"
+            aria-label={t("Open menu")}
             className="list-none [&::-webkit-details-marker]:hidden cursor-pointer h-11 w-11 flex items-center justify-center rounded-2xl border border-blue-200 bg-white text-blue-700 text-xl"
           >
             ☰
           </summary>
           <nav
-            aria-label="Discovery menu"
+            aria-label={t("Discovery menu")}
             className="absolute right-0 top-12 w-64 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl p-3 z-30"
           >
             <Link
               to="/provider/auth"
               className="block p-3 font-bold text-blue-700"
             >
-              Provider →
+              {t("Provider \u2192")}
             </Link>
             <label className="block p-3 text-sm font-semibold">
-              Categories
+              {t("Categories")}
               <select
-                aria-label="Categories"
+                aria-label={t("Categories")}
                 className="block mt-2 w-full rounded-xl border p-2 bg-white"
                 value={category}
                 onChange={(e) => {
@@ -88,17 +91,18 @@ export default function DiscoveryHeader({
                   menu.current.open = false;
                 }}
               >
-                <option value="">All</option>
+                <option value="">{t("All")}</option>
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c.replace("-", " / ")}
+                    {t(c)}
                   </option>
                 ))}
               </select>
             </label>
             <details className="p-3">
               <summary className="cursor-pointer text-sm font-semibold">
-                Distance · {radius} km
+                {t("Distance \xB7")}
+                {radius} km
               </summary>
               <form
                 className="mt-3 space-y-2"
@@ -114,7 +118,7 @@ export default function DiscoveryHeader({
                 }}
               >
                 <label className="block text-sm" htmlFor="distance">
-                  Custom distance (1–100 km)
+                  {t("Custom distance (1\u2013100 km)")}
                 </label>
                 <input
                   id="distance"
@@ -129,7 +133,7 @@ export default function DiscoveryHeader({
                   className="w-full border p-2 rounded-lg"
                 />
                 <button className="bg-blue-700 text-white rounded-lg min-h-11 px-4">
-                  Apply
+                  {t("Apply")}
                 </button>
               </form>
             </details>
@@ -140,33 +144,36 @@ export default function DiscoveryHeader({
               }}
               className="w-full text-left p-3 font-semibold text-blue-700"
             >
-              Get started
+              {t("Get started")}
             </button>
           </nav>
         </details>
       </div>
       <h1 className="text-xl sm:text-xl font-semibold mt-4">
-        Trusted Services
+        {t("Trusted Services")}
       </h1>
       <dialog
         ref={help}
         className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl p-5 backdrop:bg-slate-900/40 max-h-[85vh] overflow-y-auto"
       >
+        <LanguageSwitch />
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold">Get started</h2>
+          <h2 className="text-xl font-semibold">{t("Get started")}</h2>
           <button
             onClick={() => help.current.close()}
             className="min-h-11 px-3 text-blue-700 font-semibold"
           >
-            Close
+            {t("Close")}
           </button>
         </div>
         <div className="space-y-5 mt-3">
-          <h3 className="text-xl font-semibold">{getStartedTitle}</h3>
+          <h3 className="text-xl font-semibold">{t(getStartedTitle)}</h3>
           {getStartedSections.map(([title, body]) => (
             <section key={title}>
-              <h4 className="font-semibold text-lg text-blue-700 mb-2">{title}</h4>
-              <p className="leading-6 text-slate-600">{body}</p>
+              <h4 className="font-semibold text-lg text-blue-700 mb-2">
+                {t(title)}
+              </h4>
+              <p className="leading-6 text-slate-600">{t(body)}</p>
             </section>
           ))}
         </div>

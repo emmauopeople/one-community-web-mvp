@@ -1,26 +1,57 @@
+import { t, te, useLocale } from "../../../i18n/index.js";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import appLogo from "../../../assets/images/appLogo.png";
-
 import { skillsApi } from "../../api/skills.api";
 import SkillMediaUploader from "../../components/SkillMediaUploader";
 import { useAuth } from "../../state/auth.store.jsx";
 import { api } from "../../api/client.js";
-
 const CATEGORY_OPTIONS = [
-  { label: "Carpentry", value: "carpentry" },
-  { label: "Plumbing", value: "plumbing" },
-  { label: "Cleaning", value: "cleaning" },
-  { label: "Tutor", value: "tutor" },
-  { label: "Hair/Beauty", value: "hair-beauty" },
-  { label: "Mechanic", value: "mechanic" },
-  { label: "Catering", value: "catering" },
-  { label: "Painting", value: "painting" },
-  { label: "Tailor", value: "tailor" },
-  { label: "Trucker", value: "trucker" },
-  { label: "Other…", value: "__other__" },
+  {
+    label: "Carpentry",
+    value: "carpentry",
+  },
+  {
+    label: "Plumbing",
+    value: "plumbing",
+  },
+  {
+    label: "Cleaning",
+    value: "cleaning",
+  },
+  {
+    label: "Tutor",
+    value: "tutor",
+  },
+  {
+    label: "Hair/Beauty",
+    value: "hair-beauty",
+  },
+  {
+    label: "Mechanic",
+    value: "mechanic",
+  },
+  {
+    label: "Catering",
+    value: "catering",
+  },
+  {
+    label: "Painting",
+    value: "painting",
+  },
+  {
+    label: "Tailor",
+    value: "tailor",
+  },
+  {
+    label: "Trucker",
+    value: "trucker",
+  },
+  {
+    label: "Other…",
+    value: "__other__",
+  },
 ];
-
 const empty = {
   title: "",
   category: "",
@@ -33,11 +64,10 @@ const empty = {
   lat: "",
   lng: "",
 };
-
 export default function ProviderSkills() {
+  useLocale();
   const navigate = useNavigate();
   const { setUser } = useAuth();
-
   const titleRef = useRef(null);
   const listTitleRef = useRef(null);
   const [view, setView] = useState("list");
@@ -53,18 +83,30 @@ export default function ProviderSkills() {
       clearNotice();
     }
   };
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Notices (error=orange, success=green)
-  const [notice, setNotice] = useState({ type: "", text: "" });
-  const showError = (text) => setNotice({ type: "error", text });
-  const showSuccess = (text) => setNotice({ type: "success", text });
-  const clearNotice = () => setNotice({ type: "", text: "" });
-
+  const [notice, setNotice] = useState({
+    type: "",
+    text: "",
+  });
+  const showError = (text) =>
+    setNotice({
+      type: "error",
+      text,
+    });
+  const showSuccess = (text) =>
+    setNotice({
+      type: "success",
+      text,
+    });
+  const clearNotice = () =>
+    setNotice({
+      type: "",
+      text: "",
+    });
   const noticeClass =
     notice.type === "success"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -75,7 +117,6 @@ export default function ProviderSkills() {
   // Category UI
   const [categorySelect, setCategorySelect] = useState("");
   const [categoryOther, setCategoryOther] = useState("");
-
   const resolvedCategory = useMemo(() => {
     if (categorySelect === "__other__") return categoryOther.trim();
     return categorySelect.trim();
@@ -84,7 +125,6 @@ export default function ProviderSkills() {
   // Form state
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(empty);
-
   const [profileLocation, setProfileLocation] = useState(null);
   const [locationReady, setLocationReady] = useState(false);
   useEffect(() => {
@@ -100,11 +140,13 @@ export default function ProviderSkills() {
         setLocationReady(ready);
         setProfileLocation(profile.operating_location);
         if (ready)
-          setForm((current) => ({ ...current, ...profile.operating_location }));
+          setForm((current) => ({
+            ...current,
+            ...profile.operating_location,
+          }));
       })
       .catch(() => showError("Unable to load operating location."));
   }, []);
-
   const load = async () => {
     setLoading(true);
     try {
@@ -118,12 +160,10 @@ export default function ProviderSkills() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   const startCreate = () => {
     setView("form");
     setEditingId(null);
@@ -135,7 +175,6 @@ export default function ProviderSkills() {
     setCategoryOther("");
     clearNotice();
   };
-
   const startEdit = (s) => {
     setView("form");
     setEditingId(s.id);
@@ -151,7 +190,6 @@ export default function ProviderSkills() {
       lat: s.lat != null ? String(s.lat) : "",
       lng: s.lng != null ? String(s.lng) : "",
     });
-
     const known = CATEGORY_OPTIONS.some((o) => o.value === (s.category || ""));
     if (known) {
       setCategorySelect(s.category || "");
@@ -160,13 +198,10 @@ export default function ProviderSkills() {
       setCategorySelect("__other__");
       setCategoryOther(s.category || "");
     }
-
     clearNotice();
   };
-
   const save = async () => {
     clearNotice();
-
     if (!form.title.trim()) return showError("Title is required.");
     if (!resolvedCategory) return showError("Category is required.");
     if (categorySelect === "__other__" && categoryOther.trim().length < 2) {
@@ -176,7 +211,6 @@ export default function ProviderSkills() {
     if (!form.country.trim() || !form.region.trim() || !form.city.trim()) {
       return showError("Country, region, and city are required.");
     }
-
     const latNum = Number(form.lat);
     const lngNum = Number(form.lng);
     if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
@@ -184,7 +218,6 @@ export default function ProviderSkills() {
         "Complete your operating location in provider settings first.",
       );
     }
-
     setSaving(true);
     try {
       const payload = {
@@ -194,7 +227,6 @@ export default function ProviderSkills() {
         lat: latNum,
         lng: lngNum,
       };
-
       if (editingId) {
         await skillsApi.providerUpdate(editingId, payload);
         showSuccess("✅ Skill updated.");
@@ -204,7 +236,6 @@ export default function ProviderSkills() {
         setEditingId(newId);
         showSuccess("✅ Skill created. Now upload up to 3 images below.");
       }
-
       await load();
     } catch (e) {
       showError(e?.response?.data?.error || e?.message || "Save failed.");
@@ -212,7 +243,6 @@ export default function ProviderSkills() {
       setSaving(false);
     }
   };
-
   const remove = async (id) => {
     clearNotice();
     try {
@@ -224,7 +254,6 @@ export default function ProviderSkills() {
       showError(e?.response?.data?.error || e?.message || "Delete failed.");
     }
   };
-
   const logout = async () => {
     clearNotice();
     try {
@@ -232,16 +261,15 @@ export default function ProviderSkills() {
     } catch {}
     setUser(null);
     setMobileMenuOpen(false);
-    navigate("/provider/auth", { replace: true });
+    navigate("/provider/auth", {
+      replace: true,
+    });
   };
-
   const comingSoon = (label) => {
     setMobileMenuOpen(false);
     showError(`${label} is coming soon (post-MVP).`);
   };
-
   const menuId = "provider-mobile-menu";
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header with hamburger (mobile) and inline nav (md+) */}
@@ -253,56 +281,56 @@ export default function ProviderSkills() {
           >
             <img
               src={appLogo}
-              alt="One Community logo"
+              alt={t("One Community logo")}
               className="h-8 w-8 object-contain"
             />
-            <span className="text-base sm:text-lg">One Community</span>
+            <span className="text-base sm:text-lg">{t("One Community")}</span>
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-2">
             <span className="text-xs px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-700">
-              Skills
+              {t("Skills")}
             </span>
             <button
               type="button"
               onClick={() => comingSoon("Announcements")}
               className="text-xs px-3 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200"
             >
-              Announcements
+              {t("Announcements")}
             </button>
             <button
               type="button"
               onClick={() => comingSoon("Events")}
               className="text-xs px-3 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200"
             >
-              Events
+              {t("Events")}
             </button>
             <button
               type="button"
               onClick={() => comingSoon("Real Estate")}
               className="text-xs px-3 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200"
             >
-              Real Estate
+              {t("Real Estate")}
             </button>
             <Link
               to="/provider/requests"
               className="text-xs px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
             >
-              Requests
+              {t("Requests")}
             </Link>
             <Link
               to="/provider/profile"
               className="text-xs px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
             >
-              Profile
+              {t("Profile")}
             </Link>
             <button
               type="button"
               onClick={logout}
               className="h-10 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold text-sm shadow-sm hover:opacity-95 active:scale-[0.99]"
             >
-              Logout
+              {t("Logout")}
             </button>
           </div>
 
@@ -310,7 +338,7 @@ export default function ProviderSkills() {
           <button
             type="button"
             className="md:hidden h-10 w-10 rounded-xl border border-slate-200 bg-white inline-flex items-center justify-center hover:bg-slate-50 active:scale-[0.99] transition"
-            aria-label="Open menu"
+            aria-label={t("Open menu")}
             aria-controls={menuId}
             aria-expanded={mobileMenuOpen ? "true" : "false"}
             onClick={() => setMobileMenuOpen((v) => !v)}
@@ -333,14 +361,16 @@ export default function ProviderSkills() {
           }
         >
           <div className="px-4 sm:px-6 lg:px-10 py-3 space-y-2">
-            <div className="text-xs font-semibold text-slate-500">Menu</div>
+            <div className="text-xs font-semibold text-slate-500">
+              {t("Menu")}
+            </div>
 
             <button
               type="button"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold text-sm text-left px-3"
             >
-              Skills
+              {t("Skills")}
             </button>
 
             <button
@@ -348,7 +378,7 @@ export default function ProviderSkills() {
               onClick={() => comingSoon("Announcements")}
               className="w-full h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm text-left px-3"
             >
-              Announcements (soon)
+              {t("Announcements (soon)")}
             </button>
 
             <button
@@ -356,7 +386,7 @@ export default function ProviderSkills() {
               onClick={() => comingSoon("Events")}
               className="w-full h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm text-left px-3"
             >
-              Events (soon)
+              {t("Events (soon)")}
             </button>
 
             <button
@@ -364,21 +394,21 @@ export default function ProviderSkills() {
               onClick={() => comingSoon("Real Estate")}
               className="w-full h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm text-left px-3"
             >
-              Real Estate (soon)
+              {t("Real Estate (soon)")}
             </button>
             <Link
               to="/provider/requests"
               onClick={() => setMobileMenuOpen(false)}
               className="block w-full h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm text-left px-3 leading-[44px]"
             >
-              Requests
+              {t("Requests")}
             </Link>
             <Link
               to="/provider/profile"
               onClick={() => setMobileMenuOpen(false)}
               className="block w-full h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm text-left px-3 leading-[44px]"
             >
-              Profile
+              {t("Profile")}
             </Link>
 
             <button
@@ -386,7 +416,7 @@ export default function ProviderSkills() {
               onClick={logout}
               className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold text-sm"
             >
-              Logout
+              {t("Logout")}
             </button>
           </div>
         </div>
@@ -399,7 +429,7 @@ export default function ProviderSkills() {
           onClick={() => navigate("/search?loc=near")}
           className="text-sm text-blue-700 hover:underline"
         >
-          ← Go to search
+          {t("\u2190 Go to search")}
         </button>
       </div>
 
@@ -408,32 +438,34 @@ export default function ProviderSkills() {
           <div
             className={`mb-4 rounded-xl border px-3 py-2 text-sm ${noticeClass}`}
           >
-            {notice.text}
+            {t(notice.text)}
           </div>
         ) : null}
 
         <div className="mb-4 rounded-xl border p-3 text-sm bg-white">
           {locationReady
-            ? "New skills use your saved operating location. No new GPS capture is needed."
-            : "Complete location setup before creating or publishing skills."}{" "}
+            ? t(
+                "New skills use your saved operating location. No new GPS capture is needed.",
+              )
+            : t(
+                "Complete location setup before creating or publishing skills.",
+              )}{" "}
           <Link className="text-blue-700 underline" to="/provider/location">
-            Manage operating location and consent
+            {t("Manage operating location and consent")}
           </Link>
         </div>
 
         <div>
           {view === "list" ? (
             <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-
               <div className="flex items-center justify-between gap-3">
                 <h1
                   ref={listTitleRef}
                   tabIndex={-1}
                   className="text-lg font-semibold outline-none"
                 >
-                  My skills
+                  {t("My skills")}
                 </h1>
-
 
                 <button
                   type="button"
@@ -442,19 +474,23 @@ export default function ProviderSkills() {
                   }}
                   className="h-10 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold text-sm shadow-sm hover:opacity-95 active:scale-[0.99]"
                 >
-                  New skill
+                  {t("New skill")}
                 </button>
               </div>
 
               {loading ? (
-                <div className="mt-3 text-sm text-slate-600">Loading…</div>
+                <div className="mt-3 text-sm text-slate-600">
+                  {t("Loading\u2026")}
+                </div>
               ) : (
                 <div
                   className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3"
-                  aria-label="Created skills"
+                  aria-label={t("Created skills")}
                 >
                   {skills.length === 0 ? (
-                    <div className="text-sm text-slate-600">No skills yet.</div>
+                    <div className="text-sm text-slate-600">
+                      {t("No skills yet.")}
+                    </div>
                   ) : (
                     skills.map((s) => (
                       <div
@@ -466,7 +502,7 @@ export default function ProviderSkills() {
                             {s.title}
                           </div>
                           <div className="text-xs text-slate-600 truncate">
-                            {s.category} • {s.city}
+                            {t(s.category)} • {s.city}
                           </div>
 
                           {s.indexImageUrl ? (
@@ -477,7 +513,7 @@ export default function ProviderSkills() {
                             />
                           ) : (
                             <div className="mt-2 text-xs text-slate-500">
-                              No image yet
+                              {t("No image yet")}
                             </div>
                           )}
                         </div>
@@ -490,14 +526,14 @@ export default function ProviderSkills() {
                             }}
                             className="h-10 px-3 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100"
                           >
-                            Edit
+                            {t("Edit")}
                           </button>
                           <button
                             type="button"
                             onClick={() => remove(s.id)}
                             className="h-10 px-3 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-700"
                           >
-                            Delete
+                            {t("Delete")}
                           </button>
                         </div>
                       </div>
@@ -510,7 +546,7 @@ export default function ProviderSkills() {
             <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-semibold">
-                  {editingId ? "Edit skill" : "Create skill"}
+                  {editingId ? t("Edit skill") : t("Create skill")}
                 </div>
 
                 <button
@@ -519,7 +555,7 @@ export default function ProviderSkills() {
                   onClick={backToSkills}
                   className="min-h-11 px-3 text-sm text-blue-700 disabled:opacity-50"
                 >
-                  ‹ Back to My skills
+                  {t("\u2039 Back to My skills")}
                 </button>
               </div>
 
@@ -527,10 +563,13 @@ export default function ProviderSkills() {
                 <input
                   ref={titleRef}
                   className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                  placeholder="Title"
+                  placeholder={t("Title")}
                   value={form.title}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, title: e.target.value }))
+                    setForm((p) => ({
+                      ...p,
+                      title: e.target.value,
+                    }))
                   }
                 />
 
@@ -543,15 +582,18 @@ export default function ProviderSkills() {
                       const v = e.target.value;
                       setCategorySelect(v);
                       if (v !== "__other__") setCategoryOther("");
-                      setForm((p) => ({ ...p, category: v }));
+                      setForm((p) => ({
+                        ...p,
+                        category: v,
+                      }));
                     }}
                   >
                     <option value="" disabled>
-                      Select category…
+                      {t("Select category\u2026")}
                     </option>
                     {CATEGORY_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
-                        {o.label}
+                        {t(o.label)}
                       </option>
                     ))}
                   </select>
@@ -559,7 +601,7 @@ export default function ProviderSkills() {
                   {categorySelect === "__other__" ? (
                     <input
                       className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                      placeholder="Type category (e.g., electrician)"
+                      placeholder={t("Type category (e.g., electrician)")}
                       value={categoryOther}
                       onChange={(e) => setCategoryOther(e.target.value)}
                     />
@@ -568,32 +610,38 @@ export default function ProviderSkills() {
 
                 <input
                   className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                  placeholder="Tags (comma separated)"
+                  placeholder={t("Tags (comma separated)")}
                   value={form.tags}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, tags: e.target.value }))
+                    setForm((p) => ({
+                      ...p,
+                      tags: e.target.value,
+                    }))
                   }
                 />
 
                 <textarea
                   className="min-h-[96px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                  placeholder="Description"
+                  placeholder={t("Description")}
                   value={form.description}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
+                    setForm((p) => ({
+                      ...p,
+                      description: e.target.value,
+                    }))
                   }
                 />
 
                 <div className="rounded-xl bg-slate-50 p-3 text-sm">
                   <strong>
                     {editingId
-                      ? "Saved listing location"
-                      : "Provider operating location"}
+                      ? t("Saved listing location")
+                      : t("Provider operating location")}
                   </strong>
                   <p>
                     {[form.area, form.city, form.region]
                       .filter(Boolean)
-                      .join(", ") || "Complete provider location setup."}
+                      .join(", ") || t("Complete provider location setup.")}
                   </p>
                   {editingId && (
                     <button
@@ -607,7 +655,7 @@ export default function ProviderSkills() {
                         }))
                       }
                     >
-                      Use current profile location for this listing
+                      {t("Use current profile location for this listing")}
                     </button>
                   )}
                 </div>
@@ -619,10 +667,10 @@ export default function ProviderSkills() {
                   className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 disabled:opacity-60"
                 >
                   {saving
-                    ? "Saving…"
+                    ? t("Saving…")
                     : editingId
-                      ? "Save changes"
-                      : "Create skill"}
+                      ? t("Save changes")
+                      : t("Create skill")}
                 </button>
               </div>
 
@@ -637,7 +685,7 @@ export default function ProviderSkills() {
                 />
               ) : (
                 <div className="mt-4 text-xs text-slate-500">
-                  Create the skill first, then upload images.
+                  {t("Create the skill first, then upload images.")}
                 </div>
               )}
             </div>
@@ -647,7 +695,8 @@ export default function ProviderSkills() {
 
       <footer className="w-full bg-white border-t border-slate-200">
         <div className="w-full px-4 sm:px-6 lg:px-10 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} One Community — Provider Portal
+          © {new Date().getFullYear()}
+          {t("One Community \u2014 Provider Portal")}
         </div>
       </footer>
     </div>

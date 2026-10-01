@@ -1,5 +1,10 @@
+import { t, te, useLocale, getLanguage } from "../i18n/index.js";
 import React, { useEffect, useRef, useState } from "react";
-const douala = { lat: 4.05, lng: 9.7, label: "Douala" };
+const douala = {
+  lat: 4.05,
+  lng: 9.7,
+  label: "Douala",
+};
 const describe = (code) =>
   code === 0
     ? "Clear sky"
@@ -15,6 +20,7 @@ const describe = (code) =>
               ? "Showers"
               : "Thunderstorms";
 export default function WeatherWidget({ location }) {
+  useLocale();
   const [place, setPlace] = useState(douala),
     [city, setCity] = useState(""),
     [data, setData] = useState(null),
@@ -26,7 +32,14 @@ export default function WeatherWidget({ location }) {
     lookup.current?.abort();
     setBusy(false);
     setCity("");
-    setPlace(location ? { ...location, label: "Near you" } : douala);
+    setPlace(
+      location
+        ? {
+            ...location,
+            label: "Near you",
+          }
+        : douala,
+    );
   }, [location?.lat, location?.lng]);
   useEffect(() => () => lookup.current?.abort(), []);
   useEffect(() => {
@@ -45,7 +58,9 @@ export default function WeatherWidget({ location }) {
     timeout = setTimeout(() => controller.abort(), 8000);
     fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${place.lat.toFixed(2)}&longitude=${place.lng.toFixed(2)}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=4`,
-      { signal: controller.signal },
+      {
+        signal: controller.signal,
+      },
     )
       .then((r) => {
         if (!r.ok) throw Error();
@@ -58,7 +73,10 @@ export default function WeatherWidget({ location }) {
         try {
           sessionStorage.setItem(
             key,
-            JSON.stringify({ at: Date.now(), data: value }),
+            JSON.stringify({
+              at: Date.now(),
+              data: value,
+            }),
           );
         } catch {}
       })
@@ -84,8 +102,10 @@ export default function WeatherWidget({ location }) {
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const response = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city.trim())}&count=1&language=en&format=json`,
-        { signal: controller.signal },
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city.trim())}&count=1&language=${getLanguage()}&format=json`,
+        {
+          signal: controller.signal,
+        },
       );
       if (!response.ok) throw Error();
       const result = (await response.json()).results?.[0];
@@ -108,12 +128,12 @@ export default function WeatherWidget({ location }) {
   }
   return (
     <section
-      aria-label="Weather"
+      aria-label={t("Weather")}
       className="rounded-2xl border border-sky-100 bg-sky-50 p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold text-slate-900">Weather</h2>
+          <h2 className="font-semibold text-slate-900">{t("Weather")}</h2>
           <p className="text-sm text-slate-600">{place.label}</p>
         </div>
         <div className="text-right" aria-live="polite">
@@ -123,12 +143,12 @@ export default function WeatherWidget({ location }) {
                 {Math.round(data.current.temperature_2m)}°C
               </p>
               <p className="text-xs text-slate-600">
-                {describe(data.current.weather_code)}
+                {t(describe(data.current.weather_code))}
               </p>
             </>
           ) : (
             <p className="text-sm text-slate-600">
-              {error || "Loading weather…"}
+              {t(error || "Loading weather…")}
             </p>
           )}
         </div>
@@ -138,7 +158,7 @@ export default function WeatherWidget({ location }) {
           className="text-blue-700 text-sm min-h-11"
           onClick={() => setRetry((n) => n + 1)}
         >
-          Retry weather
+          {t("Retry weather")}
         </button>
       )}
       {data?.daily?.time && (
@@ -146,7 +166,7 @@ export default function WeatherWidget({ location }) {
           {data.daily.time.slice(1, 4).map((day, i) => (
             <div key={day} className="rounded-xl bg-white/80 p-2 text-center">
               <p className="text-xs text-slate-500">
-                {new Date(day + "T12:00:00").toLocaleDateString(undefined, {
+                {new Date(day + "T12:00:00").toLocaleDateString(getLanguage(), {
                   weekday: "short",
                 })}
               </p>
@@ -160,12 +180,12 @@ export default function WeatherWidget({ location }) {
       )}
       <details className="mt-2 text-sm">
         <summary className="cursor-pointer text-blue-700 min-h-11 flex items-center">
-          Change city
+          {t("Change city")}
         </summary>
         <form onSubmit={chooseCity} className="flex gap-2">
           <input
-            aria-label="Weather city"
-            placeholder="Town or city"
+            aria-label={t("Weather city")}
+            placeholder={t("Town or city")}
             value={city}
             onChange={(e) => setCity(e.target.value)}
             maxLength={100}
@@ -175,12 +195,12 @@ export default function WeatherWidget({ location }) {
             disabled={busy}
             className="rounded-xl bg-blue-700 text-white px-3 min-h-11 disabled:opacity-50"
           >
-            {busy ? "…" : "Apply"}
+            {busy ? "…" : t("Apply")}
           </button>
         </form>
         {error && (
           <p role="status" className="text-sm text-slate-600">
-            {error}
+            {te(error)}
           </p>
         )}
       </details>
@@ -190,7 +210,7 @@ export default function WeatherWidget({ location }) {
         rel="noreferrer"
         className="text-xs text-slate-500"
       >
-        Weather by Open-Meteo
+        {t("Weather by Open-Meteo")}
       </a>
     </section>
   );

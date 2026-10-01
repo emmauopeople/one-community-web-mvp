@@ -1,8 +1,13 @@
+import { t, te, useLocale } from "../i18n/index.js";
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../app/api/client";
 export default function ReviewsPanel({ providerId, skillId }) {
+  useLocale();
   const [reviews, setReviews] = useState([]),
-    [summary, setSummary] = useState({ count: 0, average: null }),
+    [summary, setSummary] = useState({
+      count: 0,
+      average: null,
+    }),
     [page, setPage] = useState(1),
     [more, setMore] = useState(false),
     [loading, setLoading] = useState(false),
@@ -21,7 +26,9 @@ export default function ReviewsPanel({ providerId, skillId }) {
     setError("");
     try {
       const { data } = await api.get(`/providers/${providerId}/reviews`, {
-        params: { page: next },
+        params: {
+          page: next,
+        },
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
@@ -41,7 +48,10 @@ export default function ReviewsPanel({ providerId, skillId }) {
   useEffect(() => {
     live.current = true;
     setReviews([]);
-    setSummary({ count: 0, average: null });
+    setSummary({
+      count: 0,
+      average: null,
+    });
     setOpen(false);
     setNotice("");
     load();
@@ -63,7 +73,11 @@ export default function ReviewsPanel({ providerId, skillId }) {
         rating: Number(values.get("rating")),
         body: values.get("body").trim(),
         publicationConsent: values.get("consent") === "on",
-        ...(skillId ? { skillId } : {}),
+        ...(skillId
+          ? {
+              skillId,
+            }
+          : {}),
       });
       if (live.current) {
         setNotice(data.message);
@@ -83,29 +97,32 @@ export default function ReviewsPanel({ providerId, skillId }) {
     "block w-full mt-1 rounded-xl border border-slate-200 p-3 bg-white";
   return (
     <section
-      aria-label="Provider reviews"
+      aria-label={t("Provider reviews")}
       className="rounded-3xl border border-slate-200 bg-white p-5 space-y-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Reviews</h2>
+        <h2 className="text-xl font-semibold">{t("Reviews")}</h2>
         <button
           disabled={loading}
           className="text-blue-700 text-sm min-h-11"
           onClick={() => setRefresh((n) => n + 1)}
         >
-          Refresh reviews
+          {t("Refresh reviews")}
         </button>
       </div>
       <p className="text-sm text-slate-600">
         {summary.count
-          ? `${summary.average} / 5 · ${summary.count} approved review${summary.count === 1 ? "" : "s"}`
+          ? t("{count} / 5 · {total} approved reviews", {
+              count: summary.average,
+              total: summary.count,
+            })
           : loading
-            ? "Loading reviews…"
-            : "No approved reviews yet."}
+            ? t("Loading reviews…")
+            : t("No approved reviews yet.")}
       </p>
       {error && (
         <p role="alert" className="text-amber-800">
-          {error}
+          {te(error)}
         </p>
       )}
       {reviews.map((review) => (
@@ -115,7 +132,7 @@ export default function ReviewsPanel({ providerId, skillId }) {
               {review.reviewer_name}
             </h3>
             <span
-              aria-label={`${review.rating} out of 5 stars`}
+              aria-label={t("{count} out of 5 stars", { count: review.rating })}
               className="text-blue-700 whitespace-nowrap"
             >
               {"★".repeat(review.rating)}
@@ -133,12 +150,12 @@ export default function ReviewsPanel({ providerId, skillId }) {
           className="text-blue-700 min-h-11 font-semibold"
           onClick={() => load(page + 1)}
         >
-          {loading ? "Loading…" : "Load more reviews"}
+          {loading ? t("Loading…") : t("Load more reviews")}
         </button>
       )}
       {notice && (
         <p role="status" className="text-sm text-blue-800">
-          {notice}
+          {t(notice)}
         </p>
       )}
       <button
@@ -147,12 +164,12 @@ export default function ReviewsPanel({ providerId, skillId }) {
         onClick={() => setOpen((v) => !v)}
         disabled={busy}
       >
-        {open ? "Cancel review" : "Write a review"}
+        {open ? t("Cancel review") : t("Write a review")}
       </button>
       {open && (
         <form onSubmit={submit} className="space-y-3">
           <label className="block text-sm">
-            Display name
+            {t("Display name")}
             <input
               name="name"
               required
@@ -164,7 +181,7 @@ export default function ReviewsPanel({ providerId, skillId }) {
             />
           </label>
           <label className="block text-sm">
-            Email (private, for admin verification)
+            {t("Email (private, for admin verification)")}
             <input
               name="email"
               type="email"
@@ -176,7 +193,7 @@ export default function ReviewsPanel({ providerId, skillId }) {
             />
           </label>
           <label className="block text-sm">
-            Rating
+            {t("Rating")}
             <select
               name="rating"
               defaultValue="5"
@@ -191,7 +208,7 @@ export default function ReviewsPanel({ providerId, skillId }) {
             </select>
           </label>
           <label className="block text-sm">
-            Your review
+            {t("Your review")}
             <textarea
               name="body"
               required
@@ -210,14 +227,15 @@ export default function ReviewsPanel({ providerId, skillId }) {
               disabled={busy}
               className="mt-1"
             />
-            I used this provider and agree to publish my display name, rating
-            and review after admin approval.
+            {t(
+              "I used this provider and agree to publish my display name, rating and review after admin approval.",
+            )}
           </label>
           <button
             disabled={busy}
             className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-bold py-3 disabled:opacity-50"
           >
-            {busy ? "Submitting…" : "Submit for approval"}
+            {busy ? t("Submitting…") : t("Submit for approval")}
           </button>
         </form>
       )}

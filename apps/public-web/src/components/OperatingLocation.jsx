@@ -1,3 +1,4 @@
+import { t, te, useLocale } from "../i18n/index.js";
 import React, { useState } from "react";
 export const CONSENT_VERSION = "provider-gps-v1.2";
 export const emptyLocation = {
@@ -24,10 +25,15 @@ export default function OperatingLocation({
   onChange,
   disabled = false,
 }) {
+  useLocale();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const location = value.operatingLocation || emptyLocation;
-  const update = (patch) => onChange({ ...value, ...patch });
+  const update = (patch) =>
+    onChange({
+      ...value,
+      ...patch,
+    });
   const capture = () => {
     setError("");
     if (!window.isSecureContext || !navigator.geolocation) {
@@ -57,7 +63,11 @@ export default function OperatingLocation({
           "Location unavailable. Allow location access and retry. Account creation stays incomplete.",
         );
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      },
     );
   };
   return (
@@ -65,15 +75,16 @@ export default function OperatingLocation({
       disabled={disabled || busy}
       className="space-y-3 rounded-xl border border-slate-200 p-3"
     >
-      <legend className="font-semibold">Operating location</legend>
+      <legend className="font-semibold">{t("Operating location")}</legend>
       <p className="text-sm text-slate-600">
-        Cameroon. Save the place where you provide services. New skills use this
-        location automatically.
+        {t(
+          "Cameroon. Save the place where you provide services. New skills use this location automatically.",
+        )}
       </p>
       <label className="block text-sm">
-        Region
+        {t("Region")}
         <select
-          aria-label="Region"
+          aria-label={t("Region")}
           className="block w-full border rounded-lg p-3"
           value={location.region}
           onChange={(e) =>
@@ -87,7 +98,7 @@ export default function OperatingLocation({
             })
           }
         >
-          <option value="">Choose region</option>
+          <option value="">{t("Choose region")}</option>
           {regions.map((r) => (
             <option key={r}>{r}</option>
           ))}
@@ -109,7 +120,10 @@ export default function OperatingLocation({
             maxLength={120}
             onChange={(e) =>
               update({
-                operatingLocation: { ...location, [key]: e.target.value },
+                operatingLocation: {
+                  ...location,
+                  [key]: e.target.value,
+                },
                 locationConfirmed: false,
               })
             }
@@ -129,9 +143,9 @@ export default function OperatingLocation({
             })
           }
         />
-        I agree to GPS use to save my operating location and make my services
-        discoverable nearby. This is required for a provider account. No
-        background tracking.
+        {t(
+          "I agree to GPS use to save my operating location and make my services discoverable nearby. This is required for a provider account. No background tracking.",
+        )}
       </label>
       <button
         type="button"
@@ -139,27 +153,31 @@ export default function OperatingLocation({
         className="w-full rounded-lg bg-blue-700 text-white p-3 disabled:bg-slate-300"
         onClick={capture}
       >
-        {busy ? "Capturing location…" : "Capture operating location"}
+        {busy ? t("Capturing location…") : t("Capture operating location")}
       </button>
       {location.capturedAt && (
         <>
           <p className="text-sm">
-            Location captured. Reported accuracy: about{" "}
+            {t("Location captured. Reported accuracy: about")}{" "}
             {Math.round(location.accuracy)} m.
           </p>
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
               checked={value.locationConfirmed === true}
-              onChange={(e) => update({ locationConfirmed: e.target.checked })}
+              onChange={(e) =>
+                update({
+                  locationConfirmed: e.target.checked,
+                })
+              }
             />
-            This captured position represents where I provide services.
+            {t("This captured position represents where I provide services.")}
           </label>
         </>
       )}
       {error && (
         <p role="alert" className="text-red-700 text-sm">
-          {error}
+          {te(error)}
         </p>
       )}
     </fieldset>
