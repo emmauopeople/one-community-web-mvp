@@ -21,10 +21,11 @@ export default function DashboardLayout({ children, title = "Dashboard" }) {
     <div className="h-screen overflow-hidden bg-gray-100 flex flex-col md:flex-row">
       <aside className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 md:flex-col md:bg-gradient-to-b md:from-blue-700 md:to-green-600 md:shadow-md">
         <div className="px-6 py-5 border-b border-white/20">
-          <h1 className="text-lg font-bold text-white">One Community Admin</h1>
+          <h1 className="text-lg font-semibold text-white">One Community Admin</h1>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
+          <NavLink to="/reviews" className="block rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-white/15">Reviews</NavLink>
           <NavLink
             to="/dashboard"
             className={({ isActive }) =>
@@ -126,6 +127,7 @@ export default function DashboardLayout({ children, title = "Dashboard" }) {
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-700 to-green-600 border-t border-white/20 md:hidden">
         <div className="grid grid-cols-3 text-center text-xs">
+          <NavLink to="/reviews" className="px-2 py-3 text-white">Reviews</NavLink>
           <NavLink to="/dashboard" className="px-2 py-3 text-white">
             Dashboard
           </NavLink>

@@ -103,7 +103,7 @@ export default function ContactPage() {
       <main className="mx-auto w-full max-w-3xl px-4 py-6">
         <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
           <div>
-            <h1 className="text-2xl font-semibold">Contact One Community</h1>
+            <h1 className="text-xl font-semibold">Contact One Community</h1>
             <p className="mt-2 text-sm text-slate-600">
               Send a message to the One Community admin team. Public users do
               not need an account. We will reply through the email address you

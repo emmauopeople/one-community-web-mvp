@@ -52,7 +52,7 @@ export default function DiscoveryHeader({
           className="h-10 w-10 object-contain"
         />
         <Link to="/" className="min-w-0 flex-1">
-          <span className="block font-extrabold text-blue-800 text-base sm:text-xl">
+          <span className="block font-semibold text-blue-800 text-base sm:text-lg">
             One Community
           </span>
           <span className="block text-xs font-semibold text-emerald-700">
@@ -145,7 +145,7 @@ export default function DiscoveryHeader({
           </nav>
         </details>
       </div>
-      <h1 className="text-2xl sm:text-3xl font-extrabold mt-4">
+      <h1 className="text-xl sm:text-xl font-semibold mt-4">
         Trusted Services
       </h1>
       <dialog
@@ -153,7 +153,7 @@ export default function DiscoveryHeader({
         className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl p-5 backdrop:bg-slate-900/40 max-h-[85vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold">Get started</h2>
+          <h2 className="text-xl font-semibold">Get started</h2>
           <button
             onClick={() => help.current.close()}
             className="min-h-11 px-3 text-blue-700 font-semibold"
@@ -162,10 +162,10 @@ export default function DiscoveryHeader({
           </button>
         </div>
         <div className="space-y-5 mt-3">
-          <h3 className="text-2xl font-extrabold">{getStartedTitle}</h3>
+          <h3 className="text-xl font-semibold">{getStartedTitle}</h3>
           {getStartedSections.map(([title, body]) => (
             <section key={title}>
-              <h4 className="font-bold text-lg text-blue-700 mb-2">{title}</h4>
+              <h4 className="font-semibold text-lg text-blue-700 mb-2">{title}</h4>
               <p className="leading-6 text-slate-600">{body}</p>
             </section>
           ))}

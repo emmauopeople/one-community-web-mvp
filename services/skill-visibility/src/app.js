@@ -3,6 +3,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 
+import reviewRoutes from "./routes/reviews.js";
 import healthRoutes from "./routes/health.js";
 import authRoutes from "./routes/auth.js";
 import { sessionMiddleware } from "./middleware/session.js";
@@ -72,5 +73,7 @@ app.get("/api/hello", (req, res) =>
     time: new Date().toISOString(),
   }),
 );
+
+app.use(reviewRoutes);
 
 export default app;

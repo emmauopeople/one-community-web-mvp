@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import ReviewsPanel from "../../components/ReviewsPanel";
 import { api } from "../../app/api/client";
 import { contactApi } from "../../app/api/contact.api";
 import { eventsApi } from "../../app/api/events.api";
@@ -53,7 +54,7 @@ function ListingGrid({ items, onOpen }) {
             </div>
           )}
           <div className="p-3">
-            <h3 className="font-bold break-words">{item.title}</h3>
+            <h3 className="font-semibold break-words">{item.title}</h3>
             <p className="text-sm text-slate-500">
               {[item.area, item.city].filter(Boolean).join(", ")}
             </p>
@@ -223,7 +224,7 @@ function Detail({ id, onNavigate, onEnlarge }) {
         onEnlarge={onEnlarge}
       />
       <section className={card}>
-        <h2 className="text-3xl font-extrabold break-words">{skill.title}</h2>
+        <h2 className="text-xl font-semibold break-words">{skill.title}</h2>
         <p className="font-semibold text-slate-500">{locality(skill)}</p>
         <span className="inline-block rounded-full bg-blue-100 text-blue-700 text-xs font-bold px-3 py-2">
           Provider account
@@ -240,7 +241,7 @@ function Detail({ id, onNavigate, onEnlarge }) {
           <span className="block text-sm font-bold text-slate-500">
             Provider Profile
           </span>
-          <span className="block text-lg font-extrabold mt-1">
+          <span className="block text-base font-semibold mt-1">
             {skill.display_name || "Provider"}
           </span>
           <span className="block font-bold text-blue-700 mt-3">
@@ -257,8 +258,13 @@ function Detail({ id, onNavigate, onEnlarge }) {
           Send email inquiry
         </button>
       </section>
+      <ReviewsPanel
+        key={`${skill.provider_id}:${skill.id}`}
+        providerId={skill.provider_id}
+        skillId={skill.id}
+      />
       <section aria-label="Similar listings">
-        <h2 className="text-xl font-extrabold mb-3">Similar listings</h2>
+        <h2 className="text-xl font-semibold mb-3">Similar listings</h2>
         {relatedError ? (
           <Notice onRetry={() => setRetry((n) => n + 1)}>{relatedError}</Notice>
         ) : similar === null ? (
@@ -345,7 +351,7 @@ function Provider({ id, onNavigate }) {
       ) : (
         <>
           <section className={card}>
-            <h2 className="text-2xl font-extrabold">
+            <h2 className="text-xl font-semibold">
               {profile.display_name || "Provider"}
             </h2>
             {locality(profile) && (
@@ -357,7 +363,7 @@ function Provider({ id, onNavigate }) {
             {profile.bio && <p>{profile.bio}</p>}
           </section>
           <div className="flex justify-between gap-3">
-            <h2 className="text-xl font-bold">Provider listings</h2>
+            <h2 className="text-xl font-semibold">Provider listings</h2>
             <span className="text-sm text-slate-500">
               {items.length} skills
             </span>
@@ -375,13 +381,7 @@ function Provider({ id, onNavigate }) {
               {busy ? "Loading…" : "Load more listings"}
             </button>
           )}
-          <section className={card}>
-            <h2 className="font-bold text-lg">Reviews coming soon</h2>
-            <p className="text-slate-600 leading-6">
-              In the pilot, users can view provider profiles first. Public
-              reviews will be added after validation.
-            </p>
-          </section>
+          <ReviewsPanel key={id} providerId={id} />
         </>
       )}
     </>
@@ -440,7 +440,7 @@ function Inquiry({ skill }) {
     "block mt-1 w-full rounded-xl border border-slate-200 bg-white p-3";
   return (
     <form onSubmit={submit} className={card}>
-      <h2 className="text-xl font-bold">Send email inquiry</h2>
+      <h2 className="text-xl font-semibold">Send email inquiry</h2>
       <p className="text-slate-600">
         Enter your email address and a clear message for the provider.
       </p>
@@ -572,7 +572,7 @@ export default function SkillModal({ skillId, onClose }) {
           <button ref={backButton} className={secondary} onClick={back}>
             ‹ Back
           </button>
-          <h1 className="flex-1 text-center font-extrabold text-base">
+          <h1 className="flex-1 text-center font-semibold text-base">
             {title}
           </h1>
           <button className={secondary} onClick={onClose}>

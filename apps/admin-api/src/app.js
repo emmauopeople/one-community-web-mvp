@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import reviewRoutes from "./routes/reviewRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
@@ -61,5 +62,7 @@ app.use("/", metricsRoutes);
 app.use("/api/admin", monitoringRoutes);
 app.use("/api/admin", adminManagementRoutes);
 app.use("/api/admin", analyticsRoutes);
+
+app.use("/api/admin",reviewRoutes);
 
 export default app;

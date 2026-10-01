@@ -12,7 +12,7 @@ function DashboardCard({ label, value, icon, to, colorClass, description }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-gray-600">{label}</p>
-          <h3 className="mt-2 text-3xl font-bold text-gray-900">{value}</h3>
+          <h3 className="mt-2 text-xl font-semibold text-gray-900">{value}</h3>
         </div>
 
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 text-2xl shadow-sm">
@@ -68,7 +68,7 @@ export default function DashboardPage() {
           <section className="rounded-2xl bg-gradient-to-r from-blue-700 to-green-600 p-6 text-white shadow-sm">
             <p className="text-sm font-medium text-white/80">Welcome back</p>
 
-            <h1 className="mt-2 text-2xl font-bold">
+            <h1 className="mt-2 text-xl font-semibold">
               One Community Admin Dashboard
             </h1>
 

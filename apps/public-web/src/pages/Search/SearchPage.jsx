@@ -192,7 +192,7 @@ export default function SearchPage() {
         </form>
         <WeatherWidget location={geo} />
         <section aria-label="Service listings" aria-busy={loading}>
-          <h2 className="font-bold text-xl mb-3">
+          <h2 className="font-semibold text-xl mb-3">
             {geo ? "Nearby services" : "Available services"}
           </h2>
           {loading && results.length === 0 && (
@@ -240,7 +240,7 @@ export default function SearchPage() {
                   </div>
                 )}
                 <div className="p-3">
-                  <h3 className="font-bold break-words">{s.title}</h3>
+                  <h3 className="font-semibold break-words">{s.title}</h3>
                   <p className="text-sm text-slate-600 mt-1">
                     {[s.area, s.city].filter(Boolean).join(", ")}
                   </p>

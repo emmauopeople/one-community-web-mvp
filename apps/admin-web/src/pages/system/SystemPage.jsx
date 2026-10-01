@@ -92,21 +92,21 @@ function MonitoringSection({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="rounded-xl bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">{successLabel}</p>
-                <h4 className="mt-2 text-2xl font-bold text-green-700">
+                <h4 className="mt-2 text-xl font-semibold text-green-700">
                   {successCount}
                 </h4>
               </div>
 
               <div className="rounded-xl bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">{failureLabel}</p>
-                <h4 className="mt-2 text-2xl font-bold text-red-700">
+                <h4 className="mt-2 text-xl font-semibold text-red-700">
                   {failedCount}
                 </h4>
               </div>
 
               <div className="rounded-xl bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">Total Attempts</p>
-                <h4 className="mt-2 text-2xl font-bold text-gray-800">
+                <h4 className="mt-2 text-xl font-semibold text-gray-800">
                   {total}
                 </h4>
               </div>

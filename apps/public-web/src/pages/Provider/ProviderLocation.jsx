@@ -71,7 +71,7 @@ export default function ProviderLocation() {
       <Link className="text-blue-700" to="/provider/skills">
         Back to my skills
       </Link>
-      <h1 className="text-2xl font-bold">Provider location setup</h1>
+      <h1 className="text-xl font-semibold">Provider location setup</h1>
       <p>
         Complete this once before publishing skills. You can update it here
         later.

@@ -22,7 +22,7 @@ function StatCard({ label, value, subtext }) {
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       {" "}
       <p className="text-sm text-gray-500">{label}</p>{" "}
-      <h3 className="mt-2 text-2xl font-bold text-gray-800">{value}</h3>{" "}
+      <h3 className="mt-2 text-xl font-semibold text-gray-800">{value}</h3>{" "}
       {subtext ? (
         <p className="mt-1 text-xs text-gray-500">{subtext}</p>
       ) : null}{" "}

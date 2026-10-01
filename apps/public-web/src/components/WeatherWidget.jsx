@@ -113,7 +113,7 @@ export default function WeatherWidget({ location }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-bold text-slate-900">Weather</h2>
+          <h2 className="font-semibold text-slate-900">Weather</h2>
           <p className="text-sm text-slate-600">{place.label}</p>
         </div>
         <div className="text-right" aria-live="polite">
