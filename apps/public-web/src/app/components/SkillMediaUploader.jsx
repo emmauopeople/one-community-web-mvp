@@ -34,6 +34,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
     2: null,
   });
   const [busy, setBusy] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [notice, setNotice] = useState({
     type: "",
     text: "",
@@ -74,6 +75,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
         [slot]: null,
       }));
     }
+    setPreparing(true);
     try {
       if (!ALLOWED.has(normalizeMime(file.type,file.name))) return showError("Only JPG, PNG, or WEBP images are allowed.");
       const compressedFile = await compressImageIfNeeded(file);
@@ -93,9 +95,12 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
     } catch (error) {
       console.error("IMAGE COMPRESSION FAILED:", error);
       showError("Could not prepare this image. Please try another image.");
+    } finally {
+      setPreparing(false);
     }
   };
   const upload = async () => {
+    if (busy || preparing) return;
     try {
       setNotice({
         type: "",
@@ -155,7 +160,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
                 id={inputId}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                disabled={busy}
+                disabled={busy || preparing}
                 onChange={(event) => {
                   setSlot(slot, event.target.files?.[0] || null);
                   event.target.value = "";
@@ -165,7 +170,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
 
               <label
                 htmlFor={inputId}
-                className={`inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-sm font-medium text-slate-900 transition hover:bg-slate-200 active:scale-[0.99] ${busy ? "cursor-not-allowed opacity-60" : ""}`}
+                className={`inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-sm font-medium text-slate-900 transition hover:bg-slate-200 active:scale-[0.99] ${busy || preparing ? "cursor-not-allowed opacity-60" : ""}`}
               >
                 {t("Choose file")}
               </label>
@@ -177,7 +182,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
               {file ? (
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || preparing}
                   onClick={() => setSlot(slot, null)}
                   className="mt-2 text-xs text-blue-700 hover:underline disabled:opacity-60"
                 >
@@ -199,11 +204,11 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
 
       <button
         type="button"
-        disabled={busy}
+        disabled={busy || preparing}
         onClick={upload}
         className="mt-4 h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 font-semibold text-white shadow-sm transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
       >
-        {busy ? t("Uploading...") : t("Upload selected images")}
+        {preparing ? t("Preparing images...") : busy ? t("Uploading...") : t("Upload selected images")}
       </button>
 
       <div className="mt-2 text-xs text-slate-500">
