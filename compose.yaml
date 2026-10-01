@@ -38,6 +38,9 @@ services:
     ports: ['127.0.0.1:8025:8025']
     networks: [internal]
   skill-api:
+    env_file:
+      - path: ./.env.storage
+        required: false
     build:
       context: .
       dockerfile: infra/Dockerfile.api

@@ -9,8 +9,6 @@ import { requireAuth, requireRole } from "../middleware/requireAuth.js";
 import { presignPut, presignGet, uploadBufferToS3 } from "../services/s3.js";
 import { logEvent } from "../services/eventService.js";
 
-console.log("S3_BUCKET:", process.env.S3_BUCKET);
-
 const router = express.Router();
 
 const BUCKET = process.env.S3_BUCKET;
