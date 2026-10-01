@@ -1,9 +1,10 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getDashboardSummary } from "../../api/dashboardApi";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-
 function DashboardCard({ label, value, icon, to, colorClass, description }) {
+  useLocale();
   return (
     <Link
       to={to}
@@ -11,7 +12,7 @@ function DashboardCard({ label, value, icon, to, colorClass, description }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className="text-sm font-medium text-gray-600">{t(label)}</p>
           <h3 className="mt-2 text-xl font-semibold text-gray-900">{value}</h3>
         </div>
 
@@ -24,19 +25,17 @@ function DashboardCard({ label, value, icon, to, colorClass, description }) {
     </Link>
   );
 }
-
 export default function DashboardPage() {
+  useLocale();
   const [stats, setStats] = useState({
     totalProviders: 0,
     activeProviders: 0,
     totalSkills: 0,
     openRequests: 0,
   });
-
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   useEffect(() => {
     const loadSummary = async () => {
       try {
@@ -49,38 +48,38 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-
     loadSummary();
   }, []);
-
   return (
-    <DashboardLayout title="Dashboard">
+    <DashboardLayout title={t("Dashboard")}>
       {loading ? (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Loading dashboard...</p>
+          <p className="text-sm text-gray-500">{t("Loading dashboard...")}</p>
         </div>
       ) : error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-600">{te(error)}</p>
         </div>
       ) : (
         <div className="space-y-5">
           <section className="rounded-2xl bg-gradient-to-r from-blue-700 to-green-600 p-6 text-white shadow-sm">
-            <p className="text-sm font-medium text-white/80">Welcome back</p>
+            <p className="text-sm font-medium text-white/80">
+              {t("Welcome back")}
+            </p>
 
             <h1 className="mt-2 text-xl font-semibold">
-              One Community Admin Dashboard
+              {t("One Community Admin Dashboard")}
             </h1>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/90">
-              Use this dashboard to manage providers, review skills, respond to
-              public and provider requests, monitor platform activity, and track
-              user engagement across One Community.
+              {t(
+                "Use this dashboard to manage providers, review skills, respond to public and provider requests, monitor platform activity, and track user engagement across One Community.",
+              )}
             </p>
 
             {admin?.email ? (
               <p className="mt-4 text-xs text-white/80">
-                Signed in as{" "}
+                {t("Signed in as")}{" "}
                 <span className="font-semibold">{admin.email}</span>
               </p>
             ) : null}
@@ -88,7 +87,7 @@ export default function DashboardPage() {
 
           <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <DashboardCard
-              label="Total Providers"
+              label={t("Total Providers")}
               value={stats.totalProviders}
               icon="👥"
               to="/providers"
@@ -97,7 +96,7 @@ export default function DashboardPage() {
             />
 
             <DashboardCard
-              label="Active Providers"
+              label={t("Active Providers")}
               value={stats.activeProviders}
               icon="✅"
               to="/providers"
@@ -106,7 +105,7 @@ export default function DashboardPage() {
             />
 
             <DashboardCard
-              label="Total Skills"
+              label={t("Total Skills")}
               value={stats.totalSkills}
               icon="🛠️"
               to="/skills"
@@ -115,7 +114,7 @@ export default function DashboardPage() {
             />
 
             <DashboardCard
-              label="Open Requests"
+              label={t("Open Requests")}
               value={stats.openRequests}
               icon="📩"
               to="/requests"
@@ -127,49 +126,51 @@ export default function DashboardPage() {
           <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
             <div className="rounded-2xl bg-white p-5 shadow-sm xl:col-span-2">
               <h2 className="text-lg font-semibold text-gray-800">
-                How to use this dashboard
+                {t("How to use this dashboard")}
               </h2>
 
               <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <h3 className="text-sm font-semibold text-gray-800">
-                    1. Manage providers
+                    {t("1. Manage providers")}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Use the Providers section to review registered providers,
-                    check their status, and activate or deactivate accounts when
-                    needed.
+                    {t(
+                      "Use the Providers section to review registered providers, check their status, and activate or deactivate accounts when needed.",
+                    )}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <h3 className="text-sm font-semibold text-gray-800">
-                    2. Review skills
+                    {t("2. Review skills")}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Use the Skills section to inspect provider services, review
-                    descriptions, and manage skill visibility.
+                    {t(
+                      "Use the Skills section to inspect provider services, review descriptions, and manage skill visibility.",
+                    )}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <h3 className="text-sm font-semibold text-gray-800">
-                    3. Respond to requests
+                    {t("3. Respond to requests")}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Use the Requests section to handle public messages and
-                    provider support requests. Public users receive replies by
-                    email, while providers can track notes in their portal.
+                    {t(
+                      "Use the Requests section to handle public messages and provider support requests. Public users receive replies by email, while providers can track notes in their portal.",
+                    )}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <h3 className="text-sm font-semibold text-gray-800">
-                    4. Monitor activity
+                    {t("4. Monitor activity")}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Use Analytics and System pages to monitor searches, skill
-                    views, contact clicks, login attempts, and system health.
+                    {t(
+                      "Use Analytics and System pages to monitor searches, skill views, contact clicks, login attempts, and system health.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -177,7 +178,7 @@ export default function DashboardPage() {
 
             <div className="rounded-2xl bg-white p-5 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-800">
-                Quick actions
+                {t("Quick actions")}
               </h2>
 
               <div className="mt-4 space-y-3">
@@ -185,35 +186,35 @@ export default function DashboardPage() {
                   to="/requests"
                   className="block rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 hover:bg-amber-100"
                 >
-                  Review open requests
+                  {t("Review open requests")}
                 </Link>
 
                 <Link
                   to="/providers"
                   className="block rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100"
                 >
-                  Manage providers
+                  {t("Manage providers")}
                 </Link>
 
                 <Link
                   to="/skills"
                   className="block rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-800 hover:bg-purple-100"
                 >
-                  Review skills
+                  {t("Review skills")}
                 </Link>
 
                 <Link
                   to="/analytics"
                   className="block rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800 hover:bg-green-100"
                 >
-                  View analytics
+                  {t("View analytics")}
                 </Link>
 
                 <Link
                   to="/system"
                   className="block rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-100"
                 >
-                  System monitoring
+                  {t("System monitoring")}
                 </Link>
               </div>
             </div>

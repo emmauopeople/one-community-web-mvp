@@ -260,6 +260,13 @@ test("real routes and PostgreSQL: consent, OTP, inheritance, discovery and withd
       assert.equal(events[0].search_mode, "nearby");
     },
   );
+  await t.test("French search finds English categories and records language without GPS", async () => {
+    const french=await agent.get('/skills/search?q=plombier').set('Accept-Language','fr');
+    assert.equal(french.status,200);assert.equal(french.body.results.length,12);
+    assert(french.body.results.every(s=>s.category==='plumbing'));
+    const latest=(await db.query("SELECT language,lat,lng FROM events WHERE event_type='search' ORDER BY id DESC LIMIT 1")).rows[0];
+    assert.equal(latest.language,'fr');assert.equal(latest.lat,null);assert.equal(latest.lng,null);
+  });
   await t.test(
     "withdrawal hides public records and blocks creation without blocking account access",
     async () => {

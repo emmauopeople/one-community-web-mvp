@@ -16,6 +16,23 @@ const aliases = {
   transport: ["driver", "driving", "transport", "trucker"],
   trucker: ["driver", "driving", "transport", "trucker"],
 };
+// Common English/French service words share a search group; stored content is unchanged.
+for (const group of [
+ ['carpenter','carpentry','menuisier','menuiserie'],
+ ['plumber','plumbing','plombier','plomberie'],
+ ['electrician','electrical','électricien','electricien','électricité','electricite'],
+ ['tutor','teacher','enseignant','professeur','cours'],
+ ['mechanic','mécanicien','mecanicien','mécanique','mecanique'],
+ ['tailor','tailoring','couturier','couturière','couturiere','couture'],
+ ['cleaner','cleaning','nettoyage'],
+ ['driver','transport','trucker','chauffeur','transporteur'],
+ ['hair-beauty','coiffure','coiffeur','coiffeuse','beauty','hairdresser'],
+ ['catering','traiteur','restauration'],
+ ['painting','painter','peinture','peintre'],
+]) {
+ const terms=[...new Set(group.flatMap(word=>[word,...(aliases[word]||[])]))];
+ for(const word of group) aliases[word]=terms;
+}
 const text = (value) =>
   typeof value === "string" ? value.trim().slice(0, 200) : "";
 function number(value, fallback, min, max) {

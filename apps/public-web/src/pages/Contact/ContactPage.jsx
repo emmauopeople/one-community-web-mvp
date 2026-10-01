@@ -1,19 +1,36 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import appLogo from "../../assets/images/appLogo.png";
-
 const API_BASE = import.meta.env.VITE_BACKEND_URL || "/api";
-
 const categories = [
-  { value: "general_question", label: "General Question" },
-  { value: "technical_issue", label: "Technical Issue" },
-  { value: "provider_complaint", label: "Provider Complaint" },
-  { value: "service_request", label: "Service Request" },
-  { value: "report_problem", label: "Report a Problem" },
-  { value: "other", label: "Other" },
+  {
+    value: "general_question",
+    label: "General Question",
+  },
+  {
+    value: "technical_issue",
+    label: "Technical Issue",
+  },
+  {
+    value: "provider_complaint",
+    label: "Provider Complaint",
+  },
+  {
+    value: "service_request",
+    label: "Service Request",
+  },
+  {
+    value: "report_problem",
+    label: "Report a Problem",
+  },
+  {
+    value: "other",
+    label: "Other",
+  },
 ];
-
 export default function ContactPage() {
+  useLocale();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -21,23 +38,28 @@ export default function ContactPage() {
     subject: "",
     description: "",
   });
-
-  const [notice, setNotice] = useState({ type: "", text: "" });
+  const [notice, setNotice] = useState({
+    type: "",
+    text: "",
+  });
   const [submitting, setSubmitting] = useState(false);
-
   const updateField = (field, value) => {
-    setNotice({ type: "", text: "" });
+    setNotice({
+      type: "",
+      text: "",
+    });
     setForm((previous) => ({
       ...previous,
       [field]: value,
     }));
   };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);
-    setNotice({ type: "", text: "" });
-
+    setNotice({
+      type: "",
+      text: "",
+    });
     try {
       const response = await fetch(`${API_BASE}/support/public-requests`, {
         method: "POST",
@@ -46,13 +68,10 @@ export default function ContactPage() {
         },
         body: JSON.stringify(form),
       });
-
       const data = await response.json().catch(() => ({}));
-
       if (!response.ok) {
         throw new Error(data?.error || "Failed to send message.");
       }
-
       setForm({
         name: "",
         email: "",
@@ -60,7 +79,6 @@ export default function ContactPage() {
         subject: "",
         description: "",
       });
-
       setNotice({
         type: "success",
         text: "Your message was sent successfully. Admin will reply through the email you provided.",
@@ -74,7 +92,6 @@ export default function ContactPage() {
       setSubmitting(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="w-full sticky top-0 z-10 bg-gray-100 border-b border-gray-200">
@@ -85,17 +102,17 @@ export default function ContactPage() {
           >
             <img
               src={appLogo}
-              alt="One Community logo"
+              alt={t("One Community logo")}
               className="h-8 w-8 object-contain"
             />
-            <span className="text-base sm:text-lg">One Community</span>
+            <span className="text-base sm:text-lg">{t("One Community")}</span>
           </Link>
 
           <Link
             to="/"
             className="h-10 px-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition text-sm"
           >
-            Back Home
+            {t("Back Home")}
           </Link>
         </div>
       </header>
@@ -103,23 +120,21 @@ export default function ContactPage() {
       <main className="mx-auto w-full max-w-3xl px-4 py-6">
         <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
           <div>
-            <h1 className="text-xl font-semibold">Contact One Community</h1>
+            <h1 className="text-xl font-semibold">
+              {t("Contact One Community")}
+            </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Send a message to the One Community admin team. Public users do
-              not need an account. We will reply through the email address you
-              provide.
+              {t(
+                "Send a message to the One Community admin team. Public users do not need an account. We will reply through the email address you provide.",
+              )}
             </p>
           </div>
 
           {notice.text ? (
             <div
-              className={`mt-4 rounded-xl px-4 py-3 text-sm ${
-                notice.type === "success"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                  : "bg-rose-50 text-rose-700 border border-rose-100"
-              }`}
+              className={`mt-4 rounded-xl px-4 py-3 text-sm ${notice.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}
             >
-              {notice.text}
+              {t(notice.text)}
             </div>
           ) : null}
 
@@ -129,14 +144,14 @@ export default function ContactPage() {
                 htmlFor="contact-name"
                 className="block text-sm font-medium text-slate-700"
               >
-                Name
+                {t("Name")}
               </label>
               <input
                 id="contact-name"
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Your name"
+                placeholder={t("Your name")}
                 required
               />
             </div>
@@ -146,7 +161,7 @@ export default function ContactPage() {
                 htmlFor="contact-email"
                 className="block text-sm font-medium text-slate-700"
               >
-                Email
+                {t("Email")}
               </label>
               <input
                 id="contact-email"
@@ -164,7 +179,7 @@ export default function ContactPage() {
                 htmlFor="contact-category"
                 className="block text-sm font-medium text-slate-700"
               >
-                Message Category
+                {t("Message Category")}
               </label>
               <select
                 id="contact-category"
@@ -185,14 +200,14 @@ export default function ContactPage() {
                 htmlFor="contact-subject"
                 className="block text-sm font-medium text-slate-700"
               >
-                Subject
+                {t("Subject")}
               </label>
               <input
                 id="contact-subject"
                 value={form.subject}
                 onChange={(e) => updateField("subject", e.target.value)}
                 className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Short subject"
+                placeholder={t("Short subject")}
                 required
               />
             </div>
@@ -202,19 +217,20 @@ export default function ContactPage() {
                 htmlFor="contact-description"
                 className="block text-sm font-medium text-slate-700"
               >
-                Message
+                {t("Message")}
               </label>
               <textarea
                 id="contact-description"
                 value={form.description}
                 onChange={(e) => updateField("description", e.target.value)}
                 className="mt-1 min-h-36 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Write your message here..."
+                placeholder={t("Write your message here...")}
                 required
               />
               <p className="mt-1 text-xs text-slate-500">
-                Please do not send passwords, payment details, or sensitive
-                private information.
+                {t(
+                  "Please do not send passwords, payment details, or sensitive private information.",
+                )}
               </p>
             </div>
 
@@ -223,7 +239,7 @@ export default function ContactPage() {
               disabled={submitting}
               className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 disabled:opacity-60 active:scale-[0.99] transition"
             >
-              {submitting ? "Sending..." : "Send Message"}
+              {submitting ? t("Sending...") : t("Send Message")}
             </button>
           </form>
         </section>

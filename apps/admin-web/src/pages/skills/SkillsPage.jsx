@@ -1,21 +1,20 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSkills, getSkillById, updateSkill } from "../../api/skillApi";
 import SkillDetailsPanel from "../../components/skills/SkillDetailsPanel";
-
 export default function SkillsPage() {
+  useLocale();
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState(null);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [isSavingSkill, setIsSavingSkill] = useState(false);
-
   useEffect(() => {
     const loadSkills = async () => {
       try {
@@ -27,13 +26,10 @@ export default function SkillsPage() {
         setLoading(false);
       }
     };
-
     loadSkills();
   }, []);
-
   const filteredSkills = skills.filter((skill) => {
     const term = searchTerm.toLowerCase();
-
     return (
       (skill.title || "").toLowerCase().includes(term) ||
       (skill.category || "").toLowerCase().includes(term) ||
@@ -41,7 +37,6 @@ export default function SkillsPage() {
       (skill.provider_name || "").toLowerCase().includes(term)
     );
   });
-
   const handleRowClick = async (skillId) => {
     setIsPanelOpen(true);
     setSelectedSkillId(skillId);
@@ -49,7 +44,6 @@ export default function SkillsPage() {
     setDetailsLoading(true);
     setError("");
     setSuccessMessage("");
-
     try {
       const data = await getSkillById(skillId);
       setSelectedSkill(data.skill);
@@ -59,30 +53,24 @@ export default function SkillsPage() {
       setDetailsLoading(false);
     }
   };
-
   const handleClosePanel = () => {
     setIsPanelOpen(false);
     setSelectedSkillId(null);
     setSelectedSkill(null);
   };
-
   const handleSaveSkill = async (formData) => {
     if (!selectedSkillId) return;
-
     setIsSavingSkill(true);
     setError("");
     setSuccessMessage("");
-
     try {
       const data = await updateSkill(selectedSkillId, formData);
-
       setSelectedSkill((prev) => ({
         ...prev,
         ...data.skill,
         provider_name: prev?.provider_name,
         provider_email: prev?.provider_email,
       }));
-
       setSkills((prev) =>
         prev.map((item) =>
           String(item.id) === String(selectedSkillId)
@@ -96,7 +84,6 @@ export default function SkillsPage() {
             : item,
         ),
       );
-
       setSuccessMessage("Skill updated successfully.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update skill");
@@ -104,12 +91,11 @@ export default function SkillsPage() {
       setIsSavingSkill(false);
     }
   };
-
   return (
-    <DashboardLayout title="Skills">
+    <DashboardLayout title={t("Skills")}>
       {error && (
         <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-600">{te(error)}</p>
         </div>
       )}
 
@@ -121,20 +107,21 @@ export default function SkillsPage() {
 
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-5">
-          <p className="text-sm text-gray-500">Loading skills...</p>
+          <p className="text-sm text-gray-500">{t("Loading skills...")}</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-sm p-5">
           <div className="mb-4 rounded-xl bg-gray-100 px-4 py-3">
             <p className="text-sm font-semibold text-gray-800">
-              Total Skills: {filteredSkills.length}
+              {t("Total Skills:")}
+              {filteredSkills.length}
             </p>
           </div>
 
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Search by title, category, city, or provider"
+              placeholder={t("Search by title, category, city, or provider")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
@@ -142,24 +129,29 @@ export default function SkillsPage() {
           </div>
 
           {filteredSkills.length === 0 ? (
-            <p className="text-sm text-gray-500">No skills found.</p>
+            <p className="text-sm text-gray-500">{t("No skills found.")}</p>
           ) : (
             <div className="overflow-x-auto">
               <div className="max-h-[420px] overflow-y-auto rounded-xl border">
                 <table className="min-w-full text-sm">
                   <thead className="sticky top-0 z-10 bg-blue-700 text-white">
                     <tr className="text-left">
-                      <th className="py-3 pr-4 pl-3 font-semibold">Title</th>
-                      <th className="py-3 pr-4 font-semibold">Category</th>
-                      <th className="py-3 pr-4 font-semibold">Provider</th>
-                      <th className="py-3 pr-4 font-semibold">City</th>
-                      <th className="py-3 pr-4 font-semibold">Status</th>
+                      <th className="py-3 pr-4 pl-3 font-semibold">
+                        {t("Title")}
+                      </th>
+                      <th className="py-3 pr-4 font-semibold">
+                        {t("Category")}
+                      </th>
+                      <th className="py-3 pr-4 font-semibold">
+                        {t("Provider")}
+                      </th>
+                      <th className="py-3 pr-4 font-semibold">{t("City")}</th>
+                      <th className="py-3 pr-4 font-semibold">{t("Status")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredSkills.map((skill) => {
                       const isActive = skill.status === "active";
-
                       return (
                         <tr
                           key={skill.id}
@@ -170,23 +162,19 @@ export default function SkillsPage() {
                             {skill.title}
                           </td>
                           <td className="py-4 pr-4 text-gray-600">
-                            {skill.category || "No category"}
+                            {skill.category || t("No category")}
                           </td>
                           <td className="py-4 pr-4 text-gray-600">
-                            {skill.provider_name || "Unknown provider"}
+                            {skill.provider_name || t("Unknown provider")}
                           </td>
                           <td className="py-4 pr-4 text-gray-600">
-                            {skill.city || "No city"}
+                            {skill.city || t("No city")}
                           </td>
                           <td className="py-4 pr-4">
                             <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                                isActive
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                             >
-                              {skill.status}
+                              {t(skill.status)}
                             </span>
                           </td>
                         </tr>

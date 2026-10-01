@@ -1,23 +1,23 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { Link } from "react-router-dom";
 import AuthLayout from "../../components/layout/AuthLayout";
 import { useNavigate } from "react-router-dom";
-
 export default function ForgotPasswordPage() {
+  useLocale();
   const navigate = useNavigate();
-
   const handleSubmit = (e) => {
     e.preventDefault();
     navigate("/verify-code");
   };
   return (
     <AuthLayout
-      title="Forgot Password"
+      title={t("Forgot Password")}
       subtitle="Enter your admin email and we will send a verification code."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
+            {t("Email")}
           </label>
           <input
             type="email"
@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
           type="submit"
           className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-green-500 text-white py-2 font-medium hover:from-blue-700 hover:to-green-600 transition"
         >
-          Send Code
+          {t("Send Code")}
         </button>
 
         <div className="text-center">
@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
             to="/"
             className="text-sm text-blue-600 hover:text-green-600 hover:underline"
           >
-            Back to Login
+            {t("Back to Login")}
           </Link>
         </div>
       </form>

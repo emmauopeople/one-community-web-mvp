@@ -1,3 +1,4 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
@@ -13,7 +14,6 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import CreateAdminPanel from "../../components/system/CreateAdminPanel";
 import AdminDetailsPanel from "../../components/system/AdminDetailsPanel";
-
 function MonitoringSection({
   title,
   minutes,
@@ -26,35 +26,34 @@ function MonitoringSection({
   failureLabel,
   isAdmin = false,
 }) {
+  useLocale();
   const total = Number(summary.total_count || 0);
   const successCount = Number(summary.success_count || 0);
   const failedCount = Number(summary.failed_count || 0);
-
   const successPercent = total ? (successCount / total) * 100 : 0;
   const failedPercent = total ? (failedCount / total) * 100 : 0;
-
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl shadow-sm p-5">
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <h3 className="text-lg font-semibold text-gray-800">{t(title)}</h3>
 
           <select
             value={minutes}
             onChange={(e) => onMinutesChange(Number(e.target.value))}
             className="rounded-xl border border-gray-300 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value={15}>Last 15 minutes</option>
-            <option value={60}>Last 60 minutes</option>
-            <option value={360}>Last 6 hours</option>
-            <option value={1440}>Last 24 hours</option>
+            <option value={15}>{t("Last 15 minutes")}</option>
+            <option value={60}>{t("Last 60 minutes")}</option>
+            <option value={360}>{t("Last 6 hours")}</option>
+            <option value={1440}>{t("Last 24 hours")}</option>
           </select>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Loading monitoring...</p>
+          <p className="text-sm text-gray-500">{t("Loading monitoring...")}</p>
         ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-600">{te(error)}</p>
         ) : (
           <>
             <div className="mb-5 space-y-4">
@@ -68,7 +67,9 @@ function MonitoringSection({
                 <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
                   <div
                     className="h-full bg-green-500"
-                    style={{ width: `${successPercent}%` }}
+                    style={{
+                      width: `${successPercent}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -83,7 +84,9 @@ function MonitoringSection({
                 <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
                   <div
                     className="h-full bg-red-500"
-                    style={{ width: `${failedPercent}%` }}
+                    style={{
+                      width: `${failedPercent}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -105,7 +108,7 @@ function MonitoringSection({
               </div>
 
               <div className="rounded-xl bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Total Attempts</p>
+                <p className="text-sm text-gray-500">{t("Total Attempts")}</p>
                 <h4 className="mt-2 text-xl font-semibold text-gray-800">
                   {total}
                 </h4>
@@ -117,28 +120,32 @@ function MonitoringSection({
 
       <div className="bg-white rounded-2xl shadow-sm p-5">
         <h3 className="mb-4 text-lg font-semibold text-gray-800">
-          Recent Activity
+          {t("Recent Activity")}
         </h3>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Loading recent activity...</p>
+          <p className="text-sm text-gray-500">
+            {t("Loading recent activity...")}
+          </p>
         ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-600">{te(error)}</p>
         ) : logs.length === 0 ? (
-          <p className="text-sm text-gray-500">No recent activity.</p>
+          <p className="text-sm text-gray-500">{t("No recent activity.")}</p>
         ) : (
           <div className="overflow-x-auto">
             <div className="max-h-[320px] overflow-y-auto rounded-xl border">
               <table className="min-w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-blue-700 text-white">
                   <tr className="text-left">
-                    <th className="py-3 pl-3 pr-4 font-semibold">Email</th>
-                    <th className="py-3 pr-4 font-semibold">Status</th>
+                    <th className="py-3 pl-3 pr-4 font-semibold">
+                      {t("Email")}
+                    </th>
+                    <th className="py-3 pr-4 font-semibold">{t("Status")}</th>
                     {isAdmin && (
-                      <th className="py-3 pr-4 font-semibold">Reason</th>
+                      <th className="py-3 pr-4 font-semibold">{t("Reason")}</th>
                     )}
                     <th className="py-3 pr-4 font-semibold">IP</th>
-                    <th className="py-3 pr-4 font-semibold">Time</th>
+                    <th className="py-3 pr-4 font-semibold">{t("Time")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -146,7 +153,6 @@ function MonitoringSection({
                     const success = isAdmin
                       ? log.status === "success"
                       : Boolean(log.success);
-
                     return (
                       <tr
                         key={log.id}
@@ -157,13 +163,9 @@ function MonitoringSection({
                         </td>
                         <td className="py-4 pr-4">
                           <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                              success
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${success ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                           >
-                            {success ? "success" : "failed"}
+                            {success ? t("success") : t("failed")}
                           </span>
                         </td>
                         {isAdmin && (
@@ -189,7 +191,6 @@ function MonitoringSection({
     </div>
   );
 }
-
 function AdminsSection({
   admins,
   loading,
@@ -197,37 +198,40 @@ function AdminsSection({
   onOpenCreatePanel,
   onOpenAdminDetails,
 }) {
+  useLocale();
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800">Admins</h3>
+        <h3 className="text-lg font-semibold text-gray-800">{t("Admins")}</h3>
 
         <button
           type="button"
           onClick={onOpenCreatePanel}
           className="rounded-lg bg-gradient-to-r from-blue-600 to-green-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-700 hover:to-green-600"
         >
-          Create Admin
+          {t("Create Admin")}
         </button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading admins...</p>
+        <p className="text-sm text-gray-500">{t("Loading admins...")}</p>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-600">{te(error)}</p>
       ) : admins.length === 0 ? (
-        <p className="text-sm text-gray-500">No admins found.</p>
+        <p className="text-sm text-gray-500">{t("No admins found.")}</p>
       ) : (
         <div className="overflow-x-auto">
           <div className="max-h-[500px] overflow-y-auto rounded-xl border">
             <table className="min-w-full text-sm">
               <thead className="sticky top-0 z-10 bg-blue-700 text-white">
                 <tr className="text-left">
-                  <th className="py-3 pl-3 pr-4 font-semibold">Full Name</th>
-                  <th className="py-3 pr-4 font-semibold">Email</th>
-                  <th className="py-3 pr-4 font-semibold">Role</th>
-                  <th className="py-3 pr-4 font-semibold">Status</th>
-                  <th className="py-3 pr-4 font-semibold">Created</th>
+                  <th className="py-3 pl-3 pr-4 font-semibold">
+                    {t("Full Name")}
+                  </th>
+                  <th className="py-3 pr-4 font-semibold">{t("Email")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("Role")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("Status")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("Created")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,13 +252,9 @@ function AdminsSection({
                     </td>
                     <td className="py-4 pr-4">
                       <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                          adminItem.is_active
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${adminItem.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                       >
-                        {adminItem.is_active ? "active" : "inactive"}
+                        {adminItem.is_active ? t("active") : t("inactive")}
                       </span>
                     </td>
                     <td className="py-4 pr-4 text-gray-600">
@@ -270,19 +270,15 @@ function AdminsSection({
     </div>
   );
 }
-
 export default function SystemPage() {
+  useLocale();
   const { admin } = useAuth();
   const isRootAdmin = admin?.role === "root_admin";
-
   const [activeTab, setActiveTab] = useState("monitoring");
-
   const [adminMinutes, setAdminMinutes] = useState(15);
   const [providerMinutes, setProviderMinutes] = useState(15);
-
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
-
   const [adminSummary, setAdminSummary] = useState({
     success_count: 0,
     failed_count: 0,
@@ -293,38 +289,29 @@ export default function SystemPage() {
     failed_count: 0,
     total_count: 0,
   });
-
   const [adminLogs, setAdminLogs] = useState([]);
   const [providerLogs, setProviderLogs] = useState([]);
-
   const [admins, setAdmins] = useState([]);
-
   const [adminLoading, setAdminLoading] = useState(true);
   const [providerLoading, setProviderLoading] = useState(true);
   const [adminsLoading, setAdminsLoading] = useState(true);
-
   const [adminError, setAdminError] = useState("");
   const [providerError, setProviderError] = useState("");
   const [adminsError, setAdminsError] = useState("");
-
   const [isAdminDetailsOpen, setIsAdminDetailsOpen] = useState(false);
   const [selectedAdminId, setSelectedAdminId] = useState(null);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [adminDetailsLoading, setAdminDetailsLoading] = useState(false);
   const [isSavingAdmin, setIsSavingAdmin] = useState(false);
-
   const handleOpenCreatePanel = () => {
     setIsCreatePanelOpen(true);
   };
-
   const handleCloseCreatePanel = () => {
     setIsCreatePanelOpen(false);
   };
-
   const handleCreateAdmin = async (payload) => {
     setIsCreatingAdmin(true);
     setAdminsError("");
-
     try {
       const data = await createAdmin(payload);
       setAdmins((prev) => [data.admin, ...prev]);
@@ -342,7 +329,6 @@ export default function SystemPage() {
     setSelectedAdmin(null);
     setAdminDetailsLoading(true);
     setAdminsError("");
-
     try {
       const data = await getAdminById(adminId);
       setSelectedAdmin(data.admin);
@@ -358,10 +344,8 @@ export default function SystemPage() {
   //save details
   const handleSaveAdmin = async (formData) => {
     if (!selectedAdminId) return;
-
     setIsSavingAdmin(true);
     setAdminsError("");
-
     try {
       const payload = {
         full_name: formData.full_name,
@@ -371,15 +355,15 @@ export default function SystemPage() {
         changePassword: formData.changePassword,
         newPassword: formData.changePassword ? formData.newPassword : "",
       };
-
       const data = await updateAdmin(selectedAdminId, payload);
-
       setSelectedAdmin(data.admin);
-
       setAdmins((prev) =>
         prev.map((item) =>
           String(item.id) === String(selectedAdminId)
-            ? { ...item, ...data.admin }
+            ? {
+                ...item,
+                ...data.admin,
+              }
             : item,
         ),
       );
@@ -389,18 +373,15 @@ export default function SystemPage() {
       setIsSavingAdmin(false);
     }
   };
-
   const handleCloseAdminDetails = () => {
     setIsAdminDetailsOpen(false);
     setSelectedAdminId(null);
     setSelectedAdmin(null);
   };
-
   useEffect(() => {
     const loadAdminMonitoring = async () => {
       setAdminLoading(true);
       setAdminError("");
-
       try {
         const data = await getAdminLoginMonitoring(adminMinutes);
         setAdminSummary({
@@ -417,15 +398,12 @@ export default function SystemPage() {
         setAdminLoading(false);
       }
     };
-
     loadAdminMonitoring();
   }, [adminMinutes]);
-
   useEffect(() => {
     const loadProviderMonitoring = async () => {
       setProviderLoading(true);
       setProviderError("");
-
       try {
         const data = await getProviderLoginMonitoring(providerMinutes);
         setProviderSummary({
@@ -442,17 +420,13 @@ export default function SystemPage() {
         setProviderLoading(false);
       }
     };
-
     loadProviderMonitoring();
   }, [providerMinutes]);
-
   useEffect(() => {
     if (!isRootAdmin) return;
-
     const loadAdmins = async () => {
       setAdminsLoading(true);
       setAdminsError("");
-
       try {
         const data = await getAdmins();
         setAdmins(data.admins || []);
@@ -462,43 +436,32 @@ export default function SystemPage() {
         setAdminsLoading(false);
       }
     };
-
     loadAdmins();
   }, [isRootAdmin]);
-
   useEffect(() => {
     if (!isRootAdmin && activeTab === "admins") {
       setActiveTab("monitoring");
     }
   }, [isRootAdmin, activeTab]);
-
   return (
-    <DashboardLayout title="System">
+    <DashboardLayout title={t("System")}>
       <div className="mb-4">
         <div className="inline-flex rounded-xl bg-gray-100 p-1">
           <button
             type="button"
             onClick={() => setActiveTab("monitoring")}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              activeTab === "monitoring"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-600"
-            }`}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === "monitoring" ? "bg-white text-gray-800 shadow-sm" : "text-gray-600"}`}
           >
-            Monitoring
+            {t("Monitoring")}
           </button>
 
           {isRootAdmin && (
             <button
               type="button"
               onClick={() => setActiveTab("admins")}
-              className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                activeTab === "admins"
-                  ? "bg-white text-gray-800 shadow-sm"
-                  : "text-gray-600"
-              }`}
+              className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === "admins" ? "bg-white text-gray-800 shadow-sm" : "text-gray-600"}`}
             >
-              Admins
+              {t("Admins")}
             </button>
           )}
 
@@ -507,7 +470,7 @@ export default function SystemPage() {
             disabled
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-400"
           >
-            Audit Logs
+            {t("Audit Logs")}
           </button>
         </div>
       </div>
@@ -515,7 +478,7 @@ export default function SystemPage() {
       {activeTab === "monitoring" ? (
         <div className="space-y-6">
           <MonitoringSection
-            title="Admin Login Overview"
+            title={t("Admin Login Overview")}
             minutes={adminMinutes}
             onMinutesChange={setAdminMinutes}
             summary={adminSummary}
@@ -528,7 +491,7 @@ export default function SystemPage() {
           />
 
           <MonitoringSection
-            title="Provider Login Overview"
+            title={t("Provider Login Overview")}
             minutes={providerMinutes}
             onMinutesChange={setProviderMinutes}
             summary={providerSummary}

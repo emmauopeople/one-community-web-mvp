@@ -1,12 +1,12 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../app/state/auth.store";
 import { authApi } from "../../app/api/auth.api";
 import appLogo from "../../assets/images/appLogo.png";
-
 export default function ProviderPortal() {
+  useLocale();
   const { user, setUser } = useAuth();
-
   const onLogout = async () => {
     try {
       await authApi.logout();
@@ -15,7 +15,6 @@ export default function ProviderPortal() {
     }
     setUser(null);
   };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
@@ -27,17 +26,17 @@ export default function ProviderPortal() {
           >
             <img
               src={appLogo}
-              alt="One Community logo"
+              alt={t("One Community logo")}
               className="h-8 w-8 object-contain"
             />
-            <span className="text-base sm:text-lg">One Community</span>
+            <span className="text-base sm:text-lg">{t("One Community")}</span>
           </Link>
 
           <button
             onClick={onLogout}
             className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 font-semibold hover:bg-slate-50 active:scale-[0.99] transition text-sm"
           >
-            Logout
+            {t("Logout")}
           </button>
         </div>
       </header>
@@ -45,36 +44,36 @@ export default function ProviderPortal() {
       {/* Main */}
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6">
         <div className="mx-auto w-full max-w-5xl">
-          <h1 className="text-xl font-semibold">Provider Portal</h1>
+          <h1 className="text-xl font-semibold">{t("Provider Portal")}</h1>
 
           <p className="mt-1 text-sm text-slate-600">
-            Logged in as <span className="font-semibold">{user?.email}</span> (
-            {user?.role})
+            {t("Logged in as")}
+            <span className="font-semibold">{user?.email}</span> ({user?.role})
           </p>
 
           <div className="mt-5 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-            <div className="text-sm font-semibold">Provider Actions</div>
+            <div className="text-sm font-semibold">{t("Provider Actions")}</div>
 
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 to="/provider/requests"
                 className="h-11 px-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition text-sm"
               >
-                My Requests
+                {t("My Requests")}
               </Link>
 
               <Link
                 to="/provider/skills"
                 className="h-11 px-4 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900 font-semibold hover:bg-slate-50 active:scale-[0.99] transition text-sm"
               >
-                My Skills is
+                {t("My Skills is")}
               </Link>
 
               <Link
                 to="/provider/profile"
                 className="h-11 px-4 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900 font-semibold hover:bg-slate-50 active:scale-[0.99] transition text-sm"
               >
-                My Profile
+                {t("My Profile")}
               </Link>
             </div>
           </div>
@@ -84,8 +83,8 @@ export default function ProviderPortal() {
       {/* Footer */}
       <footer className="w-full bg-white border-t border-slate-200">
         <div className="w-full px-4 sm:px-6 lg:px-10 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} One Community — Provider Portal is
-          running
+          © {new Date().getFullYear()}
+          {t("One Community \u2014 Provider Portal is running")}
         </div>
       </footer>
     </div>

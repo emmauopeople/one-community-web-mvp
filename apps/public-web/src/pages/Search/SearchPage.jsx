@@ -1,3 +1,4 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import React, { useEffect, useRef, useState } from "react";
 import DiscoveryHeader from "../../components/DiscoveryHeader";
 import WeatherWidget from "../../components/WeatherWidget";
@@ -16,6 +17,7 @@ const remember = (value) => {
   } catch {}
 };
 export default function SearchPage() {
+  useLocale();
   const initial = new URLSearchParams(window.location.search);
   const [q, setQ] = useState(initial.get("q") || ""),
     [category, setCategory] = useState(initial.get("category") || "");
@@ -37,7 +39,11 @@ export default function SearchPage() {
     location = geo,
     nextPage = 1,
     searchRadius = radius,
-    criteria = { q, category, city },
+    criteria = {
+      q,
+      category,
+      city,
+    },
   } = {}) {
     request.current?.abort();
     const controller = new AbortController();
@@ -50,10 +56,18 @@ export default function SearchPage() {
       city: location ? "" : criteria.city,
       page: nextPage,
       ...(location
-        ? { lat: location.lat, lng: location.lng, radius_km: searchRadius }
+        ? {
+            lat: location.lat,
+            lng: location.lng,
+            radius_km: searchRadius,
+          }
         : {}),
     };
-    activeSearch.current = { location, searchRadius, criteria };
+    activeSearch.current = {
+      location,
+      searchRadius,
+      criteria,
+    };
     try {
       const { data } = await api.get("/skills/search", {
         params,
@@ -88,7 +102,9 @@ export default function SearchPage() {
       setGeo(null);
       remember(false);
       setGeoMessage("Location unavailable. Search by town or area instead.");
-      search({ location: null });
+      search({
+        location: null,
+      });
     };
     if (!window.isSecureContext || !navigator.geolocation) {
       fail();
@@ -104,10 +120,16 @@ export default function SearchPage() {
         setLocating(false);
         setGeo(location);
         remember(true);
-        search({ location });
+        search({
+          location,
+        });
       },
       fail,
-      { timeout: 15000, maximumAge: 60000, enableHighAccuracy: false },
+      {
+        timeout: 15000,
+        maximumAge: 60000,
+        enableHighAccuracy: false,
+      },
     );
   }
   function disableNear() {
@@ -116,10 +138,14 @@ export default function SearchPage() {
     setGeo(null);
     remember(false);
     setGeoMessage("");
-    search({ location: null });
+    search({
+      location: null,
+    });
   }
   useEffect(() => {
-    search({ location: null });
+    search({
+      location: null,
+    });
     if (readPreference()) locate();
     return () => {
       request.current?.abort();
@@ -133,12 +159,21 @@ export default function SearchPage() {
           category={category}
           onCategory={(value) => {
             setCategory(value);
-            search({ criteria: { q, category: value, city } });
+            search({
+              criteria: {
+                q,
+                category: value,
+                city,
+              },
+            });
           }}
           radius={radius}
           onRadius={(value) => {
             setRadius(value);
-            if (geo) search({ searchRadius: value });
+            if (geo)
+              search({
+                searchRadius: value,
+              });
           }}
         />
         <form
@@ -149,26 +184,26 @@ export default function SearchPage() {
           className="bg-white border border-slate-200 rounded-3xl p-4 space-y-3"
         >
           <label className="block font-bold" htmlFor="service-search">
-            What are you looking for?
+            {t("What are you looking for?")}
           </label>
           <input
             id="service-search"
             className="w-full border border-blue-200 bg-slate-50 rounded-2xl p-4"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Service, town or area"
+            placeholder={t("Service, town or area")}
             maxLength={200}
           />
           <button
             disabled={loading}
             className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-bold py-4 disabled:opacity-60"
           >
-            {loading ? "Searching…" : "Search"}
+            {loading ? t("Searching…") : t("Search")}
           </button>
           <button
             type="button"
             role="switch"
-            aria-label="Use location"
+            aria-label={t("Use location")}
             aria-checked={Boolean(geo)}
             disabled={locating}
             onClick={geo ? disableNear : locate}
@@ -182,40 +217,42 @@ export default function SearchPage() {
                 className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${geo ? "translate-x-3" : ""}`}
               />
             </span>
-            {locating ? "Locating…" : "Use location"}
+            {locating ? t("Locating…") : t("Use location")}
           </button>
           {geoMessage && (
             <p role="status" className="text-sm text-amber-800">
-              {geoMessage}
+              {te(geoMessage)}
             </p>
           )}
         </form>
         <WeatherWidget location={geo} />
-        <section aria-label="Service listings" aria-busy={loading}>
+        <section aria-label={t("Service listings")} aria-busy={loading}>
           <h2 className="font-semibold text-xl mb-3">
-            {geo ? "Nearby services" : "Available services"}
+            {geo ? t("Nearby services") : t("Available services")}
           </h2>
           {loading && results.length === 0 && (
             <p role="status" className="text-sm text-slate-500 mb-3">
-              Loading services…
+              {t("Loading services\u2026")}
             </p>
           )}
           {error ? (
             <div role="alert" className="border rounded-xl bg-white p-4">
-              <p>{error}</p>
+              <p>{te(error)}</p>
               <button
                 className="text-blue-700 underline p-2"
                 onClick={() => search()}
               >
-                Retry
+                {t("Retry")}
               </button>
             </div>
           ) : !loading && results.length === 0 ? (
             <p className="bg-white rounded-xl p-5 border">
-              No services found
+              {t("No services found")}
               {geo
-                ? " within this radius. Choose a wider radius or turn off nearby."
-                : ". Try a service, city or area."}
+                ? t(
+                    " within this radius. Choose a wider radius or turn off nearby.",
+                  )
+                : t(". Try a service, city or area.")}
             </p>
           ) : null}
           <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -236,7 +273,7 @@ export default function SearchPage() {
                   />
                 ) : (
                   <div className="h-24 sm:h-32 bg-emerald-50 flex items-center justify-center text-emerald-800 text-sm">
-                    Local service
+                    {t("Local service")}
                   </div>
                 )}
                 <div className="p-3">
@@ -245,9 +282,9 @@ export default function SearchPage() {
                     {[s.area, s.city].filter(Boolean).join(", ")}
                   </p>
                   <p className="text-xs text-emerald-800 mt-1">
-                    {s.category}
+                    {t(s.category)}
                     {s.distance_km != null
-                      ? ` · about ${s.distance_km} km`
+                      ? t(" · about {distance} km", { distance: s.distance_km })
                       : ""}
                   </p>
                 </div>
@@ -259,10 +296,13 @@ export default function SearchPage() {
               disabled={loading}
               className="block mx-auto mt-5 px-5 py-3 rounded-xl border bg-white"
               onClick={() =>
-                search({ ...activeSearch.current, nextPage: page + 1 })
+                search({
+                  ...activeSearch.current,
+                  nextPage: page + 1,
+                })
               }
             >
-              {loading ? "Loading…" : "Load more"}
+              {loading ? t("Loading…") : t("Load more")}
             </button>
           )}
         </section>

@@ -1,3 +1,4 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import OperatingLocation, {
   emptyLocation,
 } from "../../components/OperatingLocation";
@@ -6,27 +7,23 @@ import { Link, useNavigate } from "react-router-dom";
 import appLogo from "../../assets/images/appLogo.png";
 import { authApi } from "../../app/api/auth.api";
 import { useAuth } from "../../app/state/auth.store";
-
 function getApiError(ex, fallback) {
   return ex?.response?.data?.error || ex?.message || fallback;
 }
-
 function isValidPhone(phone) {
   const p = String(phone || "")
     .trim()
     .replace(/\s+/g, "");
   return /^\+?\d{8,15}$/.test(p);
 }
-
 function isValidDisplayName(name) {
   const n = String(name || "").trim();
   return n.length >= 2 && n.length <= 60;
 }
-
 export default function ProviderAuth() {
+  useLocale();
   const navigate = useNavigate();
   const { setUser } = useAuth();
-
   const [mode, setMode] = useState("login"); // "login" | "register"
 
   // Login state
@@ -40,9 +37,10 @@ export default function ProviderAuth() {
   const [regCode, setRegCode] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regStarted, setRegStarted] = useState(false);
-
   const [locationSetup, setLocationSetup] = useState({
-    operatingLocation: { ...emptyLocation },
+    operatingLocation: {
+      ...emptyLocation,
+    },
     gpsConsent: false,
     locationConfirmed: false,
   });
@@ -51,12 +49,10 @@ export default function ProviderAuth() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
-
   const canLogin = useMemo(
     () => loginEmail.trim() && loginPassword.trim(),
     [loginEmail, loginPassword],
   );
-
   const canBeginReg = useMemo(() => {
     const nameOk = isValidDisplayName(regDisplayName);
     const emailOk = regEmail.trim();
@@ -71,20 +67,16 @@ export default function ProviderAuth() {
       locationSetup.locationConfirmed
     );
   }, [regDisplayName, regEmail, regPhone, regPassword, locationSetup]);
-
   const canCompleteReg = useMemo(() => {
     return regStarted && regEmail.trim() && regCode.trim().length === 6;
   }, [regStarted, regEmail, regCode]);
-
   const resetNotices = () => {
     setMsg("");
     setErr("");
   };
-
   const onLogin = async (e) => {
     e.preventDefault();
     if (!canLogin || busy) return;
-
     resetNotices();
     setBusy(true);
     try {
@@ -93,36 +85,32 @@ export default function ProviderAuth() {
         password: loginPassword,
       });
       if (!data?.ok) throw new Error(data?.error || "Login failed");
-
       setUser(data.user);
-      navigate("/provider/skills", { replace: true });
+      navigate("/provider/skills", {
+        replace: true,
+      });
     } catch (ex) {
       setErr(getApiError(ex, "Login failed"));
     } finally {
       setBusy(false);
     }
   };
-
   const onBeginRegistration = async (e) => {
     e.preventDefault();
     if (!canBeginReg || busy) return;
-
     resetNotices();
-
     if (!isValidDisplayName(regDisplayName)) {
       setErr(
         "Display name must be 2–60 characters (your name or business name).",
       );
       return;
     }
-
     if (!isValidPhone(regPhone)) {
       setErr(
         "Invalid phone number. Use digits only (optionally +), 8–15 digits.",
       );
       return;
     }
-
     setBusy(true);
     try {
       const data = await authApi.beginRegistration({
@@ -132,10 +120,8 @@ export default function ProviderAuth() {
         phone: regPhone.trim(),
         password: regPassword,
       });
-
       if (!data?.ok)
         throw new Error(data?.error || "Failed to start registration");
-
       setRegStarted(true);
       setRegCode("");
       setMsg(
@@ -147,11 +133,9 @@ export default function ProviderAuth() {
       setBusy(false);
     }
   };
-
   const onCompleteRegistration = async (e) => {
     e.preventDefault();
     if (!canCompleteReg || busy) return;
-
     resetNotices();
     setBusy(true);
     try {
@@ -159,20 +143,19 @@ export default function ProviderAuth() {
         email: regEmail.trim(),
         otp: regCode.trim(),
       });
-
       if (!data?.ok) throw new Error(data?.error || "Registration failed");
-
       if (data?.user) setUser(data.user);
 
       // keep consistent with login
-      navigate("/provider/skills", { replace: true });
+      navigate("/provider/skills", {
+        replace: true,
+      });
     } catch (ex) {
       setErr(getApiError(ex, "Registration failed"));
     } finally {
       setBusy(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
@@ -185,10 +168,10 @@ export default function ProviderAuth() {
           >
             <img
               src={appLogo}
-              alt="One Community logo"
+              alt={t("One Community logo")}
               className="h-8 w-8 object-contain"
             />
-            <span className="text-base sm:text-lg">One Community</span>
+            <span className="text-base sm:text-lg">{t("One Community")}</span>
           </Link>
 
           <Link
@@ -196,7 +179,7 @@ export default function ProviderAuth() {
             id="nav-provider-auth-link"
             className="h-10 px-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition text-sm"
           >
-            Provider Portal
+            {t("Provider Portal")}
           </Link>
         </div>
       </header>
@@ -204,7 +187,7 @@ export default function ProviderAuth() {
       {/* Back */}
       <div className="w-full px-4 sm:px-6 lg:px-10 pt-3">
         <Link to="/" className="text-sm text-blue-700 hover:underline">
-          ← Back
+          {t("\u2190 Back")}
         </Link>
       </div>
 
@@ -226,7 +209,7 @@ export default function ProviderAuth() {
                   : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50")
               }
             >
-              Login
+              {t("Login")}
             </button>
 
             <button
@@ -242,7 +225,7 @@ export default function ProviderAuth() {
                   : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50")
               }
             >
-              Create Account
+              {t("Create Account")}
             </button>
           </div>
 
@@ -264,15 +247,15 @@ export default function ProviderAuth() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
             {mode === "login" ? (
               <>
-                <h1 className="text-xl font-semibold">Provider Login</h1>
+                <h1 className="text-xl font-semibold">{t("Provider Login")}</h1>
                 <p className="mt-1 text-sm text-slate-600">
-                  Login to manage your skills.
+                  {t("Login to manage your skills.")}
                 </p>
 
                 <form className="mt-4 space-y-3" onSubmit={onLogin}>
                   <input
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                    placeholder="Email"
+                    placeholder={t("Email")}
                     autoComplete="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
@@ -281,7 +264,7 @@ export default function ProviderAuth() {
 
                   <input
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                    placeholder="Password"
+                    placeholder={t("Password")}
                     type="password"
                     autoComplete="current-password"
                     value={loginPassword}
@@ -299,16 +282,19 @@ export default function ProviderAuth() {
                         : "bg-gradient-to-r from-blue-600 to-emerald-500 hover:opacity-95 active:scale-[0.99]")
                     }
                   >
-                    {busy ? "Signing in…" : "Login"}
+                    {busy ? t("Signing in…") : t("Login")}
                   </button>
                 </form>
               </>
             ) : (
               <>
-                <h1 className="text-xl font-semibold">Provider Registration</h1>
+                <h1 className="text-xl font-semibold">
+                  {t("Provider Registration")}
+                </h1>
                 <p className="mt-1 text-sm text-slate-600">
-                  Enter your details, receive a 6-digit code by email, then
-                  complete registration.
+                  {t(
+                    "Enter your details, receive a 6-digit code by email, then complete registration.",
+                  )}
                 </p>
 
                 <form
@@ -319,7 +305,7 @@ export default function ProviderAuth() {
                 >
                   <input
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                    placeholder="Display name (your name or business)"
+                    placeholder={t("Display name (your name or business)")}
                     value={regDisplayName}
                     onChange={(e) => setRegDisplayName(e.target.value)}
                     disabled={busy || regStarted}
@@ -328,7 +314,7 @@ export default function ProviderAuth() {
 
                   <input
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                    placeholder="Email"
+                    placeholder={t("Email")}
                     autoComplete="email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
@@ -337,7 +323,7 @@ export default function ProviderAuth() {
 
                   <input
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                    placeholder="Phone (e.g., +2376xxxxxxx)"
+                    placeholder={t("Phone (e.g., +2376xxxxxxx)")}
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
                     disabled={busy || regStarted}
@@ -354,7 +340,7 @@ export default function ProviderAuth() {
                     <>
                       <input
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                        placeholder="Create password (min 8 chars)"
+                        placeholder={t("Create password (min 8 chars)")}
                         type="password"
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
@@ -372,7 +358,7 @@ export default function ProviderAuth() {
                         className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-medium hover:bg-slate-100 active:scale-[0.99] transition"
                         disabled={busy}
                       >
-                        SMS code (later)
+                        {t("SMS code (later)")}
                       </button>
 
                       <button
@@ -386,20 +372,21 @@ export default function ProviderAuth() {
                         }
                       >
                         {busy
-                          ? "Sending code…"
-                          : "Begin Registration (Email OTP)"}
+                          ? t("Sending code…")
+                          : t("Begin Registration (Email OTP)")}
                       </button>
 
                       <div className="text-xs text-slate-500">
-                        Display name: 2–60 chars • Phone: digits only
-                        (optionally +), 8–15 digits.
+                        {t(
+                          "Display name: 2\u201360 chars \u2022 Phone: digits only (optionally +), 8\u201315 digits.",
+                        )}
                       </div>
                     </>
                   ) : (
                     <>
                       <input
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                        placeholder="Enter 6-digit code"
+                        placeholder={t("Enter 6-digit code")}
                         value={regCode}
                         onChange={(e) =>
                           setRegCode(
@@ -422,7 +409,7 @@ export default function ProviderAuth() {
                             : "bg-gradient-to-r from-blue-600 to-emerald-500 hover:opacity-95 active:scale-[0.99]")
                         }
                       >
-                        {busy ? "Completing…" : "Complete Registration"}
+                        {busy ? t("Completing…") : t("Complete Registration")}
                       </button>
 
                       <button
@@ -436,7 +423,7 @@ export default function ProviderAuth() {
                         className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 font-medium hover:bg-slate-100 active:scale-[0.99] transition"
                         disabled={busy}
                       >
-                        Start over
+                        {t("Start over")}
                       </button>
                     </>
                   )}
@@ -450,7 +437,8 @@ export default function ProviderAuth() {
       {/* Footer */}
       <footer className="w-full bg-white border-t border-slate-200">
         <div className="w-full px-4 sm:px-6 lg:px-10 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} One Community — Provider Portal
+          © {new Date().getFullYear()}
+          {t("One Community \u2014 Provider Portal")}
         </div>
       </footer>
     </div>

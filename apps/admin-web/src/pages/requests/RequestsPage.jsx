@@ -1,23 +1,38 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { useEffect, useState } from "react";
-
 import DashboardLayout from "../../components/layout/DashboardLayout";
-
 import {
   getRequests,
   getRequestById,
   updateRequest,
   addRequestNote,
 } from "../../api/requestApi";
-
 const FILTER_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Incomplete", value: "incomplete" },
-  { label: "Complete", value: "complete" },
-  { label: "In Progress", value: "in-progress" },
-  { label: "Closed", value: "closed" },
-  { label: "Denied", value: "denied" },
+  {
+    label: "All",
+    value: "all",
+  },
+  {
+    label: "Incomplete",
+    value: "incomplete",
+  },
+  {
+    label: "Complete",
+    value: "complete",
+  },
+  {
+    label: "In Progress",
+    value: "in-progress",
+  },
+  {
+    label: "Closed",
+    value: "closed",
+  },
+  {
+    label: "Denied",
+    value: "denied",
+  },
 ];
-
 function getStatusClasses(status) {
   switch (status) {
     case "complete":
@@ -33,8 +48,8 @@ function getStatusClasses(status) {
       return "bg-amber-100 text-amber-700";
   }
 }
-
 export default function RequestsPage() {
+  useLocale();
   const [requests, setRequests] = useState([]);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -49,30 +64,25 @@ export default function RequestsPage() {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-
   const loadRequests = async (
     currentFilter = filterStatus,
     keepSelectedId = null,
   ) => {
     setListLoading(true);
     setError("");
-
     try {
       const data = await getRequests(currentFilter, requestType);
       const items = data.requests || [];
       setRequests(items);
-
       if (items.length === 0) {
         setSelectedRequestId(null);
         setSelectedRequest(null);
         setNotes([]);
         return;
       }
-
       const targetId =
         items.find((item) => String(item.id) === String(keepSelectedId))?.id ||
         items[0].id;
-
       setSelectedRequestId(targetId);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load requests");
@@ -80,13 +90,10 @@ export default function RequestsPage() {
       setListLoading(false);
     }
   };
-
   const loadRequestDetails = async (requestId) => {
     if (!requestId) return;
-
     setDetailsLoading(true);
     setError("");
-
     try {
       const data = await getRequestById(requestId);
       setSelectedRequest(data.request);
@@ -99,15 +106,12 @@ export default function RequestsPage() {
       setDetailsLoading(false);
     }
   };
-
   useEffect(() => {
     loadRequests(filterStatus, selectedRequestId);
   }, [filterStatus, requestType]);
-
   useEffect(() => {
     loadRequestDetails(selectedRequestId);
   }, [selectedRequestId]);
-
   const filteredRequests = requests.filter((request) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -115,24 +119,20 @@ export default function RequestsPage() {
       (request.title || "").toLowerCase().includes(term)
     );
   });
-
   const handleUpdate = async () => {
     if (!selectedRequestId) return;
-
     setUpdateLoading(true);
     setError("");
     setSuccessMessage("");
-
     try {
-      await updateRequest(selectedRequestId, { status: selectedStatus });
-
+      await updateRequest(selectedRequestId, {
+        status: selectedStatus,
+      });
       if (newNote.trim()) {
         await addRequestNote(selectedRequestId, newNote);
       }
-
       await loadRequests(filterStatus, selectedRequestId);
       await loadRequestDetails(selectedRequestId);
-
       setSuccessMessage("Request updated successfully.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update request");
@@ -140,12 +140,11 @@ export default function RequestsPage() {
       setUpdateLoading(false);
     }
   };
-
   return (
-    <DashboardLayout title="Requests">
+    <DashboardLayout title={t("Requests")}>
       {error && (
         <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-600">{te(error)}</p>
         </div>
       )}
 
@@ -159,13 +158,15 @@ export default function RequestsPage() {
         {/* LEFT COLUMN */}
         <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col min-h-0">
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Requests</h3>
+            <h3 className="text-lg font-semibold text-gray-800">
+              {t("Requests")}
+            </h3>
           </div>
 
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <input
               type="text"
-              placeholder="Search by provider or title"
+              placeholder={t("Search by provider or title")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
@@ -178,7 +179,7 @@ export default function RequestsPage() {
             >
               {FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.label)}
                 </option>
               ))}
             </select>
@@ -187,17 +188,19 @@ export default function RequestsPage() {
               onChange={(e) => setRequestType(e.target.value)}
               className="w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              <option value="provider">Provider Requests</option>
-              <option value="public">Public Messages</option>
-              <option value="all">All Requests</option>
+              <option value="provider">{t("Provider Requests")}</option>
+              <option value="public">{t("Public Messages")}</option>
+              <option value="all">{t("All Requests")}</option>
             </select>
           </div>
 
           <div className="flex-1 min-h-0">
             {listLoading ? (
-              <p className="text-sm text-gray-500">Loading requests...</p>
+              <p className="text-sm text-gray-500">
+                {t("Loading requests...")}
+              </p>
             ) : filteredRequests.length === 0 ? (
-              <p className="text-sm text-gray-500">No requests found.</p>
+              <p className="text-sm text-gray-500">{t("No requests found.")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <div className="h-full overflow-y-auto rounded-xl border">
@@ -205,10 +208,14 @@ export default function RequestsPage() {
                     <thead className="sticky top-0 z-10 bg-blue-700 text-white">
                       <tr className="text-left">
                         <th className="py-3 pr-4 pl-3 font-semibold">
-                          Requester
+                          {t("Requester")}
                         </th>
-                        <th className="py-3 pr-4 font-semibold">Title</th>
-                        <th className="py-3 pr-4 font-semibold">Status</th>
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Title")}
+                        </th>
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Status")}
+                        </th>
                       </tr>
                     </thead>
 
@@ -216,17 +223,14 @@ export default function RequestsPage() {
                       {filteredRequests.map((request) => {
                         const isSelected =
                           String(selectedRequestId) === String(request.id);
-
                         return (
                           <tr
                             key={request.id}
                             onClick={() => setSelectedRequestId(request.id)}
-                            className={`border-b last:border-b-0 cursor-pointer ${
-                              isSelected ? "bg-blue-50" : "hover:bg-gray-50"
-                            }`}
+                            className={`border-b last:border-b-0 cursor-pointer ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
                           >
                             <td className="py-4 pr-4 pl-3 font-medium text-gray-800">
-                              {request.display_name || "Unknown requester"}
+                              {request.display_name || t("Unknown requester")}
                             </td>
 
                             <td className="py-4 pr-4 text-gray-600">
@@ -235,9 +239,7 @@ export default function RequestsPage() {
 
                             <td className="py-4 pr-4">
                               <span
-                                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(
-                                  request.status,
-                                )}`}
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(request.status)}`}
                               >
                                 {request.status}
                               </span>
@@ -257,24 +259,24 @@ export default function RequestsPage() {
         <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col min-h-0">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Request Details
+              {t("Request Details")}
             </h3>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto">
             {detailsLoading ? (
               <p className="text-sm text-gray-500">
-                Loading request details...
+                {t("Loading request details...")}
               </p>
             ) : !selectedRequest ? (
               <p className="text-sm text-gray-500">
-                Select a request to view details.
+                {t("Select a request to view details.")}
               </p>
             ) : (
               <div className="space-y-4 pr-1">
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500">
-                    Title
+                    {t("Title")}
                   </p>
                   <p className="text-sm text-gray-800 mt-1">
                     {selectedRequest.title}
@@ -283,22 +285,20 @@ export default function RequestsPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500">
-                    Requester
+                    {t("Requester")}
                   </p>
                   <p className="text-sm text-gray-800 mt-1">
-                    {selectedRequest.display_name || "Unknown provider"}
+                    {selectedRequest.display_name || t("Unknown provider")}
                   </p>
                 </div>
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500">
-                    Status
+                    {t("Status")}
                   </p>
                   <div className="mt-1">
                     <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(
-                        selectedRequest.status,
-                      )}`}
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(selectedRequest.status)}`}
                     >
                       {selectedRequest.status}
                     </span>
@@ -307,7 +307,7 @@ export default function RequestsPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500">
-                    Description
+                    {t("Description")}
                   </p>
                   <p className="text-sm text-gray-800 mt-1">
                     {selectedRequest.description}
@@ -316,11 +316,13 @@ export default function RequestsPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
-                    Conversation
+                    {t("Conversation")}
                   </p>
 
                   {notes.length === 0 ? (
-                    <p className="text-sm text-gray-500">No notes yet.</p>
+                    <p className="text-sm text-gray-500">
+                      {t("No notes yet.")}
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {notes.map((note) => (
@@ -330,10 +332,10 @@ export default function RequestsPage() {
                         >
                           <p className="text-xs font-semibold text-gray-500 mb-1">
                             {note.user_type === "admin"
-                              ? "Admin"
+                              ? t("Admin")
                               : note.user_type === "public"
-                                ? "Public User"
-                                : "Provider"}{" "}
+                                ? t("Public User")
+                                : t("Provider")}{" "}
                             — {new Date(note.created_at).toLocaleString()}
                           </p>
                           <p className="text-sm text-gray-800">{note.note}</p>
@@ -345,7 +347,7 @@ export default function RequestsPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
-                    Action
+                    {t("Action")}
                   </p>
 
                   <select
@@ -353,22 +355,22 @@ export default function RequestsPage() {
                     onChange={(e) => setSelectedStatus(e.target.value)}
                     className="w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="incomplete">Incomplete</option>
-                    <option value="complete">Complete</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="closed">Closed</option>
-                    <option value="denied">Denied</option>
+                    <option value="incomplete">{t("Incomplete")}</option>
+                    <option value="complete">{t("Complete")}</option>
+                    <option value="in-progress">{t("In Progress")}</option>
+                    <option value="closed">{t("Closed")}</option>
+                    <option value="denied">{t("Denied")}</option>
                   </select>
                 </div>
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
-                    Add Note
+                    {t("Add Note")}
                   </p>
 
                   <textarea
                     rows={4}
-                    placeholder="Add a new conversation note"
+                    placeholder={t("Add a new conversation note")}
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
                     className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
@@ -381,7 +383,7 @@ export default function RequestsPage() {
                   disabled={updateLoading}
                   className="rounded-lg bg-gradient-to-r from-blue-600 to-green-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-700 hover:to-green-600 disabled:opacity-70"
                 >
-                  {updateLoading ? "Updating..." : "Update"}
+                  {updateLoading ? t("Updating...") : t("Update")}
                 </button>
               </div>
             )}

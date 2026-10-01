@@ -1,3 +1,4 @@
+import {getLanguage} from '../../i18n/store';
 import axios from "axios";
 
 export const api = axios.create({
@@ -5,3 +6,5 @@ export const api = axios.create({
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
+
+api.interceptors.request.use(config => {config.headers['Accept-Language']=getLanguage();return config;});

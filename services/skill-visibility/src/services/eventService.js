@@ -16,6 +16,8 @@ export async function logEvent({
   meta = {},
 }) {
   const ip = getIp(req);
+  const locale = String(req.headers["accept-language"] || meta.language || "en").toLowerCase();
+  const language = locale.startsWith("fr") ? "fr" : "en";
   const userAgent = req.headers["user-agent"] || null;
 
   // Accept both camelCase and snake_case from the frontend
@@ -53,8 +55,8 @@ export async function logEvent({
 
   await query(
     `INSERT INTO events
-     (event_type, user_id, skill_id, country, region, city, category, q, channel, lat, lng, radius_km, ip, user_agent, result_count, search_mode, area)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+     (event_type, user_id, skill_id, country, region, city, category, q, channel, lat, lng, radius_km, ip, user_agent, result_count, search_mode, area, language)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
     [
       eventType,
       userId,
@@ -73,6 +75,7 @@ export async function logEvent({
       meta.result_count ?? null,
       meta.search_mode ?? null,
       meta.area ?? null,
+      language,
     ],
   );
 }

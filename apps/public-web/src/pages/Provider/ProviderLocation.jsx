@@ -1,3 +1,4 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../app/api/client";
@@ -5,8 +6,11 @@ import OperatingLocation, {
   emptyLocation,
 } from "../../components/OperatingLocation";
 export default function ProviderLocation() {
+  useLocale();
   const [value, setValue] = useState({
-    operatingLocation: { ...emptyLocation },
+    operatingLocation: {
+      ...emptyLocation,
+    },
     gpsConsent: false,
     locationConfirmed: false,
   });
@@ -58,7 +62,11 @@ export default function ProviderLocation() {
     try {
       await api.delete("/provider/location/consent");
       setSaved(false);
-      setValue((v) => ({ ...v, gpsConsent: false, locationConfirmed: false }));
+      setValue((v) => ({
+        ...v,
+        gpsConsent: false,
+        locationConfirmed: false,
+      }));
       setMessage("Consent withdrawn. You can still manage your account.");
     } catch {
       setMessage("Unable to withdraw consent. Please retry.");
@@ -69,12 +77,13 @@ export default function ProviderLocation() {
   return (
     <main className="max-w-lg mx-auto p-4 space-y-4">
       <Link className="text-blue-700" to="/provider/skills">
-        Back to my skills
+        {t("Back to my skills")}
       </Link>
-      <h1 className="text-xl font-semibold">Provider location setup</h1>
+      <h1 className="text-xl font-semibold">{t("Provider location setup")}</h1>
       <p>
-        Complete this once before publishing skills. You can update it here
-        later.
+        {t(
+          "Complete this once before publishing skills. You can update it here later.",
+        )}
       </p>
       <form onSubmit={save} className="space-y-4">
         <OperatingLocation value={value} onChange={setValue} disabled={busy} />
@@ -82,17 +91,17 @@ export default function ProviderLocation() {
           className="bg-emerald-700 text-white rounded-xl p-3 w-full disabled:bg-slate-300"
           disabled={busy || !value.gpsConsent || !value.locationConfirmed}
         >
-          Save operating location
+          {t("Save operating location")}
         </button>
       </form>
-      <p role="status">{message}</p>
+      <p role="status">{t(message)}</p>
       {saved && (
         <button
           disabled={busy}
           className="text-red-700 underline"
           onClick={withdraw}
         >
-          Withdraw GPS consent
+          {t("Withdraw GPS consent")}
         </button>
       )}
     </main>

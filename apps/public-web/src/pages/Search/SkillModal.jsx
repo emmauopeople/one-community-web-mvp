@@ -1,3 +1,5 @@
+import LanguageSwitch from "../../i18n/LanguageSwitch";
+import { t, te, useLocale } from "../../i18n/index.js";
 import React, { useEffect, useRef, useState } from "react";
 import ReviewsPanel from "../../components/ReviewsPanel";
 import { api } from "../../app/api/client";
@@ -13,6 +15,7 @@ const locality = (s) =>
 const failure = (e) =>
   e?.response?.data?.error || "Unable to load this content. Please retry.";
 function Notice({ children, onRetry }) {
+  useLocale();
   return (
     <div
       role="alert"
@@ -24,13 +27,14 @@ function Notice({ children, onRetry }) {
           className="block min-h-11 text-blue-700 font-semibold"
           onClick={onRetry}
         >
-          Retry
+          {t("Retry")}
         </button>
       )}
     </div>
   );
 }
 function ListingGrid({ items, onOpen }) {
+  useLocale();
   return (
     <div className="grid grid-cols-2 gap-3">
       {items.map((item) => (
@@ -50,7 +54,7 @@ function ListingGrid({ items, onOpen }) {
             />
           ) : (
             <div className="h-28 sm:h-40 bg-blue-50 flex items-center justify-center text-sm text-slate-500">
-              Local service
+              {t("Local service")}
             </div>
           )}
           <div className="p-3">
@@ -58,7 +62,7 @@ function ListingGrid({ items, onOpen }) {
             <p className="text-sm text-slate-500">
               {[item.area, item.city].filter(Boolean).join(", ")}
             </p>
-            <p className="text-xs text-emerald-700 mt-1">{item.category}</p>
+            <p className="text-xs text-emerald-700 mt-1">{t(item.category)}</p>
           </div>
         </button>
       ))}
@@ -66,6 +70,7 @@ function ListingGrid({ items, onOpen }) {
   );
 }
 function Gallery({ media, title, onEnlarge }) {
+  useLocale();
   const [index, setIndex] = useState(0),
     touch = useRef(null);
   const photos = media.filter(
@@ -87,7 +92,7 @@ function Gallery({ media, title, onEnlarge }) {
       >
         {photos[index] ? (
           <button
-            aria-label="Enlarge service image"
+            aria-label={t("Enlarge service image")}
             className="block w-full"
             onClick={() => onEnlarge(photos, index)}
           >
@@ -99,20 +104,20 @@ function Gallery({ media, title, onEnlarge }) {
           </button>
         ) : (
           <div className="h-64 flex items-center justify-center text-slate-500">
-            No photos yet
+            {t("No photos yet")}
           </div>
         )}
         {photos.length > 1 && (
           <>
             <button
-              aria-label="Previous image"
+              aria-label={t("Previous image")}
               onClick={() => move(-1)}
               className="absolute top-1/2 left-3 -translate-y-1/2 h-11 w-11 rounded-full bg-slate-900/60 text-white text-3xl"
             >
               ‹
             </button>
             <button
-              aria-label="Next image"
+              aria-label={t("Next image")}
               onClick={() => move(1)}
               className="absolute top-1/2 right-3 -translate-y-1/2 h-11 w-11 rounded-full bg-slate-900/60 text-white text-3xl"
             >
@@ -129,7 +134,7 @@ function Gallery({ media, title, onEnlarge }) {
       </div>
       {photos.length > 1 && (
         <div
-          aria-label="Service thumbnails"
+          aria-label={t("Service thumbnails")}
           className="flex gap-2 overflow-x-auto py-1"
         >
           {photos.map((image, i) => (
@@ -154,6 +159,7 @@ function Gallery({ media, title, onEnlarge }) {
   );
 }
 function Detail({ id, onNavigate, onEnlarge }) {
+  useLocale();
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [retry, setRetry] = useState(0),
@@ -166,7 +172,9 @@ function Detail({ id, onNavigate, onEnlarge }) {
     setSimilar(null);
     setRelatedError("");
     api
-      .get(`/skills/${id}`, { signal: controller.signal })
+      .get(`/skills/${id}`, {
+        signal: controller.signal,
+      })
       .then(({ data: value }) => {
         if (controller.signal.aborted) return;
         if (!value.skill) throw Error();
@@ -174,7 +182,9 @@ function Detail({ id, onNavigate, onEnlarge }) {
         // The detail endpoint owns skill_view analytics; do not post a second event.
         api
           .get("/skills/search", {
-            params: { category: value.skill.category },
+            params: {
+              category: value.skill.category,
+            },
             signal: controller.signal,
           })
           .then(({ data: related }) => {
@@ -196,8 +206,8 @@ function Detail({ id, onNavigate, onEnlarge }) {
     return () => controller.abort();
   }, [id, retry]);
   if (error)
-    return <Notice onRetry={() => setRetry((n) => n + 1)}>{error}</Notice>;
-  if (!data) return <p role="status">Loading service…</p>;
+    return <Notice onRetry={() => setRetry((n) => n + 1)}>{te(error)}</Notice>;
+  if (!data) return <p role="status">{t("Loading service\u2026")}</p>;
   const { skill, media = [] } = data;
   function whatsapp() {
     const digits = String(skill.provider_phone || "").replace(/\D/g, "");
@@ -210,7 +220,7 @@ function Detail({ id, onNavigate, onEnlarge }) {
       channel: "whatsapp",
     });
     window.open(
-      `https://wa.me/${digits}?text=${encodeURIComponent("Hello, I found your service on One Community: " + skill.title)}`,
+      `https://wa.me/${digits}?text=${encodeURIComponent(t("Hello, I found your service on One Community: {title}",{title:skill.title}))}`,
       "_blank",
       "noopener,noreferrer",
     );
@@ -227,35 +237,43 @@ function Detail({ id, onNavigate, onEnlarge }) {
         <h2 className="text-xl font-semibold break-words">{skill.title}</h2>
         <p className="font-semibold text-slate-500">{locality(skill)}</p>
         <span className="inline-block rounded-full bg-blue-100 text-blue-700 text-xs font-bold px-3 py-2">
-          Provider account
+          {t("Provider account")}
         </span>
         <p className="text-slate-700 leading-7 whitespace-pre-wrap">
           {skill.description}
         </p>
         <button
           onClick={() =>
-            onNavigate({ kind: "provider", id: skill.provider_id })
+            onNavigate({
+              kind: "provider",
+              id: skill.provider_id,
+            })
           }
           className="w-full text-left rounded-2xl border border-slate-200 bg-slate-50 p-4"
         >
           <span className="block text-sm font-bold text-slate-500">
-            Provider Profile
+            {t("Provider Profile")}
           </span>
           <span className="block text-base font-semibold mt-1">
-            {skill.display_name || "Provider"}
+            {skill.display_name || t("Provider")}
           </span>
           <span className="block font-bold text-blue-700 mt-3">
-            View all provider listings
+            {t("View all provider listings")}
           </span>
         </button>
         <button className={primary} onClick={whatsapp}>
-          Contact by WhatsApp
+          {t("Contact by WhatsApp")}
         </button>
         <button
           className="w-full min-h-12 rounded-2xl bg-blue-50 text-blue-700 font-bold p-3"
-          onClick={() => onNavigate({ kind: "inquiry", skill })}
+          onClick={() =>
+            onNavigate({
+              kind: "inquiry",
+              skill,
+            })
+          }
         >
-          Send email inquiry
+          {t("Send email inquiry")}
         </button>
       </section>
       <ReviewsPanel
@@ -263,25 +281,33 @@ function Detail({ id, onNavigate, onEnlarge }) {
         providerId={skill.provider_id}
         skillId={skill.id}
       />
-      <section aria-label="Similar listings">
-        <h2 className="text-xl font-semibold mb-3">Similar listings</h2>
+      <section aria-label={t("Similar listings")}>
+        <h2 className="text-xl font-semibold mb-3">{t("Similar listings")}</h2>
         {relatedError ? (
-          <Notice onRetry={() => setRetry((n) => n + 1)}>{relatedError}</Notice>
+          <Notice onRetry={() => setRetry((n) => n + 1)}>
+            {te(relatedError)}
+          </Notice>
         ) : similar === null ? (
-          <p role="status">Loading similar listings…</p>
+          <p role="status">{t("Loading similar listings\u2026")}</p>
         ) : similar.length ? (
           <ListingGrid
             items={similar}
-            onOpen={(next) => onNavigate({ kind: "detail", id: next })}
+            onOpen={(next) =>
+              onNavigate({
+                kind: "detail",
+                id: next,
+              })
+            }
           />
         ) : (
-          <p className="text-slate-500">No similar listings yet.</p>
+          <p className="text-slate-500">{t("No similar listings yet.")}</p>
         )}
       </section>
     </>
   );
 }
 function Provider({ id, onNavigate }) {
+  useLocale();
   const [profile, setProfile] = useState(null),
     [items, setItems] = useState([]),
     [page, setPage] = useState(0),
@@ -298,9 +324,13 @@ function Provider({ id, onNavigate }) {
     setItems([]);
     setBusy(true);
     Promise.all([
-      api.get(`/providers/${id}/public`, { signal: controller.signal }),
+      api.get(`/providers/${id}/public`, {
+        signal: controller.signal,
+      }),
       api.get("/skills/search", {
-        params: { provider_id: id },
+        params: {
+          provider_id: id,
+        },
         signal: controller.signal,
       }),
     ])
@@ -327,7 +357,10 @@ function Provider({ id, onNavigate }) {
     setError("");
     try {
       const { data } = await api.get("/skills/search", {
-        params: { provider_id: id, page: page + 1 },
+        params: {
+          provider_id: id,
+          page: page + 1,
+        },
       });
       if (!live.current) return;
       setItems((old) => [...old, ...data.results]);
@@ -343,42 +376,48 @@ function Provider({ id, onNavigate }) {
     <>
       {error && (
         <Notice onRetry={profile ? loadMore : () => setRetry((n) => n + 1)}>
-          {error}
+          {te(error)}
         </Notice>
       )}
       {!profile ? (
-        busy && <p role="status">Loading provider…</p>
+        busy && <p role="status">{t("Loading provider\u2026")}</p>
       ) : (
         <>
           <section className={card}>
             <h2 className="text-xl font-semibold">
-              {profile.display_name || "Provider"}
+              {profile.display_name || t("Provider")}
             </h2>
             {locality(profile) && (
               <p className="text-slate-500">{locality(profile)}</p>
             )}
             <span className="inline-block rounded-full bg-blue-100 text-blue-700 text-xs font-bold px-3 py-2">
-              Provider account
+              {t("Provider account")}
             </span>
             {profile.bio && <p>{profile.bio}</p>}
           </section>
           <div className="flex justify-between gap-3">
-            <h2 className="text-xl font-semibold">Provider listings</h2>
+            <h2 className="text-xl font-semibold">{t("Provider listings")}</h2>
             <span className="text-sm text-slate-500">
-              {items.length} skills
+              {items.length}
+              {t("skills")}
             </span>
           </div>
           {items.length ? (
             <ListingGrid
               items={items}
-              onOpen={(next) => onNavigate({ kind: "detail", id: next })}
+              onOpen={(next) =>
+                onNavigate({
+                  kind: "detail",
+                  id: next,
+                })
+              }
             />
           ) : (
-            <p>No listings available.</p>
+            <p>{t("No listings available.")}</p>
           )}
           {more && (
             <button disabled={busy} onClick={loadMore} className={secondary}>
-              {busy ? "Loading…" : "Load more listings"}
+              {busy ? t("Loading…") : t("Load more listings")}
             </button>
           )}
           <ReviewsPanel key={id} providerId={id} />
@@ -388,10 +427,11 @@ function Provider({ id, onNavigate }) {
   );
 }
 function Inquiry({ skill }) {
+  useLocale();
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
     [message, setMessage] = useState(
-      `Hello, I am interested in ${skill.title}. Please contact me with more details.`,
+      t("Hello, I am interested in {title}. Please contact me with more details.",{title:skill.title}),
     ),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
@@ -440,12 +480,12 @@ function Inquiry({ skill }) {
     "block mt-1 w-full rounded-xl border border-slate-200 bg-white p-3";
   return (
     <form onSubmit={submit} className={card}>
-      <h2 className="text-xl font-semibold">Send email inquiry</h2>
+      <h2 className="text-xl font-semibold">{t("Send email inquiry")}</h2>
       <p className="text-slate-600">
-        Enter your email address and a clear message for the provider.
+        {t("Enter your email address and a clear message for the provider.")}
       </p>
       <label className="block">
-        Your name
+        {t("Your name")}
         <input
           autoComplete="name"
           required
@@ -457,7 +497,7 @@ function Inquiry({ skill }) {
         />
       </label>
       <label className="block">
-        Your email address
+        {t("Your email address")}
         <input
           type="email"
           autoComplete="email"
@@ -469,7 +509,7 @@ function Inquiry({ skill }) {
         />
       </label>
       <label className="block">
-        Message
+        {t("Message")}
         <textarea
           required
           minLength={10}
@@ -483,21 +523,27 @@ function Inquiry({ skill }) {
       </label>
       {notice && (
         <p role="status" className="text-sm">
-          {notice}
+          {t(notice)}
         </p>
       )}
       <button disabled={busy} className={primary}>
-        {busy ? "Sending…" : "Submit inquiry"}
+        {busy ? t("Sending…") : t("Submit inquiry")}
       </button>
     </form>
   );
 }
 export default function SkillModal({ skillId, onClose }) {
+  useLocale();
   const dialog = useRef(null),
     body = useRef(null),
     backButton = useRef(null),
     scrolls = useRef([]);
-  const [stack, setStack] = useState([{ kind: "detail", id: skillId }]),
+  const [stack, setStack] = useState([
+      {
+        kind: "detail",
+        id: skillId,
+      },
+    ]),
     [viewer, setViewer] = useState(null);
   const view = stack.at(-1);
   useEffect(() => {
@@ -540,7 +586,7 @@ export default function SkillModal({ skillId, onClose }) {
   return (
     <dialog
       ref={dialog}
-      aria-label={title}
+      aria-label={t(title)}
       onKeyDown={(e) => {
         if (e.key !== "Tab") return;
         const controls = [
@@ -568,15 +614,16 @@ export default function SkillModal({ skillId, onClose }) {
       className="m-auto p-0 w-full max-w-2xl h-[100dvh] max-h-[100dvh] sm:h-[92dvh] sm:rounded-3xl bg-slate-50 text-slate-900 backdrop:bg-slate-900/50"
     >
       <div className="h-full flex flex-col">
+        <LanguageSwitch />
         <header className="flex items-center gap-2 p-3 border-b border-slate-200 bg-slate-50">
           <button ref={backButton} className={secondary} onClick={back}>
-            ‹ Back
+            {t("\u2039 Back")}
           </button>
           <h1 className="flex-1 text-center font-semibold text-base">
-            {title}
+            {t(title)}
           </h1>
           <button className={secondary} onClick={onClose}>
-            Close
+            {t("Close")}
           </button>
         </header>
         <div ref={body} className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4">
@@ -590,7 +637,7 @@ export default function SkillModal({ skillId, onClose }) {
               <div className="flex justify-between items-center gap-3">
                 <button
                   className={secondary}
-                  aria-label="Previous enlarged image"
+                  aria-label={t("Previous enlarged image")}
                   onClick={() =>
                     setViewer((v) => ({
                       ...v,
@@ -605,7 +652,7 @@ export default function SkillModal({ skillId, onClose }) {
                 </span>
                 <button
                   className={secondary}
-                  aria-label="Next enlarged image"
+                  aria-label={t("Next enlarged image")}
                   onClick={() =>
                     setViewer((v) => ({
                       ...v,
@@ -631,7 +678,12 @@ export default function SkillModal({ skillId, onClose }) {
                   <Detail
                     id={entry.id}
                     onNavigate={navigate}
-                    onEnlarge={(photos, index) => setViewer({ photos, index })}
+                    onEnlarge={(photos, index) =>
+                      setViewer({
+                        photos,
+                        index,
+                      })
+                    }
                   />
                 ) : entry.kind === "provider" ? (
                   <Provider id={entry.id} onNavigate={navigate} />

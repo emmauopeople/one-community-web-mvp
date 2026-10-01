@@ -1,5 +1,5 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { useState } from "react";
-
 export default function ProviderDetailsPanel({
   isOpen,
   onClose,
@@ -7,6 +7,7 @@ export default function ProviderDetailsPanel({
   onSave,
   isSaving = false,
 }) {
+  useLocale();
   const initialForm = {
     display_name: provider?.display_name || "",
     email: provider?.email || "",
@@ -17,40 +18,31 @@ export default function ProviderDetailsPanel({
     newPassword: "",
     confirmPassword: "",
   };
-
   const [formData, setFormData] = useState(initialForm);
   const [localError, setLocalError] = useState("");
-
   if (!isOpen) return null;
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     setLocalError("");
-
     if (formData.changePassword) {
       if (!formData.newPassword || formData.newPassword.length < 8) {
         setLocalError("New password must be at least 8 characters.");
         return;
       }
-
       if (formData.newPassword !== formData.confirmPassword) {
         setLocalError("Passwords do not match.");
         return;
       }
     }
-
     onSave?.(formData);
   };
-
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -58,7 +50,7 @@ export default function ProviderDetailsPanel({
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-800">
-            Provider Details
+            {t("Provider Details")}
           </h2>
 
           <button
@@ -66,18 +58,20 @@ export default function ProviderDetailsPanel({
             onClick={onClose}
             className="rounded-lg border px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
-            Close
+            {t("Close")}
           </button>
         </div>
 
         <div className="p-6">
           {!provider ? (
-            <p className="text-sm text-gray-500">Loading provider details...</p>
+            <p className="text-sm text-gray-500">
+              {t("Loading provider details...")}
+            </p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                  Display Name
+                  {t("Display Name")}
                 </label>
                 <input
                   type="text"
@@ -90,7 +84,7 @@ export default function ProviderDetailsPanel({
 
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                  Email
+                  {t("Email")}
                 </label>
                 <input
                   type="email"
@@ -103,7 +97,7 @@ export default function ProviderDetailsPanel({
 
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                  Phone
+                  {t("Phone")}
                 </label>
                 <input
                   type="text"
@@ -116,7 +110,7 @@ export default function ProviderDetailsPanel({
 
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                  City
+                  {t("City")}
                 </label>
                 <input
                   type="text"
@@ -129,7 +123,7 @@ export default function ProviderDetailsPanel({
 
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                  Status
+                  {t("Status")}
                 </label>
                 <select
                   name="status"
@@ -137,14 +131,14 @@ export default function ProviderDetailsPanel({
                   onChange={handleChange}
                   className="w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="active">{t("Active")}</option>
+                  <option value="inactive">{t("Inactive")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                  Listed Skills
+                  {t("Listed Skills")}
                 </label>
                 <input
                   type="text"
@@ -163,7 +157,7 @@ export default function ProviderDetailsPanel({
                     onChange={handleChange}
                   />
                   <span className="text-sm font-medium text-gray-800">
-                    Change Password
+                    {t("Change Password")}
                   </span>
                 </label>
 
@@ -171,7 +165,7 @@ export default function ProviderDetailsPanel({
                   <div className="mt-4 space-y-4">
                     <div>
                       <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                        New Password
+                        {t("New Password")}
                       </label>
                       <input
                         type="password"
@@ -184,7 +178,7 @@ export default function ProviderDetailsPanel({
 
                     <div>
                       <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">
-                        Confirm Password
+                        {t("Confirm Password")}
                       </label>
                       <input
                         type="password"
@@ -207,7 +201,7 @@ export default function ProviderDetailsPanel({
                 disabled={isSaving}
                 className="rounded-lg bg-gradient-to-r from-blue-600 to-green-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-700 hover:to-green-600 disabled:opacity-70"
               >
-                {isSaving ? "Saving..." : "Save Updates"}
+                {isSaving ? t("Saving...") : t("Save Updates")}
               </button>
             </form>
           )}

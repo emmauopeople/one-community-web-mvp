@@ -1,3 +1,4 @@
+import LanguageSwitch from "./i18n/LanguageSwitch";
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -18,6 +19,7 @@ import ProviderRequests from "./pages/Provider/ProviderRequests.jsx";
 export default function App() {
   return (
     <AuthProvider>
+      <LanguageSwitch />
       <Routes>
         <Route path="/" element={<SearchPage />} />
         <Route path="/contact" element={<ContactPage />} />

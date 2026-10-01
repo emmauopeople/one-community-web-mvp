@@ -1,3 +1,4 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import { useEffect, useMemo, useState } from "react";
 import {
   getContactChannels,
@@ -10,7 +11,10 @@ import {
 } from "../../api/analyticsApi";
 import { getAdminLoginMonitoring } from "../../api/monitoringApi";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-const TABS = { BUSINESS: "business", LOGINS: "logins" };
+const TABS = {
+  BUSINESS: "business",
+  LOGINS: "logins",
+};
 function toNumber(value) {
   return Number(value || 0);
 }
@@ -18,10 +22,11 @@ function getMaxValue(items, key) {
   return Math.max(...items.map((item) => toNumber(item[key])), 1);
 }
 function StatCard({ label, value, subtext }) {
+  useLocale();
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       {" "}
-      <p className="text-sm text-gray-500">{label}</p>{" "}
+      <p className="text-sm text-gray-500">{t(label)}</p>{" "}
       <h3 className="mt-2 text-xl font-semibold text-gray-800">{value}</h3>{" "}
       {subtext ? (
         <p className="mt-1 text-xs text-gray-500">{subtext}</p>
@@ -30,15 +35,18 @@ function StatCard({ label, value, subtext }) {
   );
 }
 function BarList({ title, items, labelKey, valueKey, emptyText }) {
+  useLocale();
   const max = getMaxValue(items, valueKey);
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       {" "}
-      <h3 className="mb-4 text-lg font-semibold text-gray-800">{title}</h3>{" "}
+      <h3 className="mb-4 text-lg font-semibold text-gray-800">
+        {t(title)}
+      </h3>{" "}
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">
           {" "}
-          {emptyText || "No data available."}{" "}
+          {emptyText || t("No data available.")}{" "}
         </p>
       ) : (
         <div className="space-y-4">
@@ -61,7 +69,9 @@ function BarList({ title, items, labelKey, valueKey, emptyText }) {
                   {" "}
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-blue-600 to-green-500"
-                    style={{ width }}
+                    style={{
+                      width,
+                    }}
                   />{" "}
                 </div>{" "}
               </div>
@@ -73,16 +83,19 @@ function BarList({ title, items, labelKey, valueKey, emptyText }) {
   );
 }
 function ContactChannelChart({ channels }) {
+  useLocale();
   const total = channels.reduce((sum, item) => sum + toNumber(item.clicks), 0);
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       {" "}
       <h3 className="mb-4 text-lg font-semibold text-gray-800">
         {" "}
-        Contact Channels{" "}
+        {t("Contact Channels")}{" "}
       </h3>{" "}
       {total === 0 ? (
-        <p className="text-sm text-gray-500">No contact clicks available.</p>
+        <p className="text-sm text-gray-500">
+          {t("No contact clicks available.")}
+        </p>
       ) : (
         <div className="space-y-4">
           {" "}
@@ -99,14 +112,18 @@ function ContactChannelChart({ channels }) {
                   </span>{" "}
                   <span className="text-gray-500">
                     {" "}
-                    {clicks} clicks • {percent}%{" "}
+                    {clicks}
+                    {" " + t("clicks \u2022") + " "}
+                    {percent}%{" "}
                   </span>{" "}
                 </div>{" "}
                 <div className="h-4 overflow-hidden rounded-full bg-gray-100">
                   {" "}
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-blue-600 to-green-500"
-                    style={{ width: `${Math.max(percent, 4)}%` }}
+                    style={{
+                      width: `${Math.max(percent, 4)}%`,
+                    }}
                   />{" "}
                 </div>{" "}
               </div>
@@ -118,6 +135,7 @@ function ContactChannelChart({ channels }) {
   );
 }
 function DailyActivityChart({ rows }) {
+  useLocale();
   const max = Math.max(
     ...rows.map((row) =>
       Math.max(
@@ -134,16 +152,19 @@ function DailyActivityChart({ rows }) {
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         {" "}
         <h3 className="text-lg font-semibold text-gray-800">
-          Daily Activity
+          {t("Daily Activity")}
         </h3>{" "}
         <div className="flex flex-wrap gap-3 text-xs text-gray-600">
           {" "}
-          <span>Blue: Searches</span> <span>Green: Skill Views</span>{" "}
-          <span>Amber: Contact Clicks</span>{" "}
+          <span>{t("Blue: Searches")}</span>{" "}
+          <span>{t("Green: Skill Views")}</span>{" "}
+          <span>{t("Amber: Contact Clicks")}</span>{" "}
         </div>{" "}
       </div>{" "}
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No daily activity available.</p>
+        <p className="text-sm text-gray-500">
+          {t("No daily activity available.")}
+        </p>
       ) : (
         <div className="overflow-x-auto">
           {" "}
@@ -200,12 +221,15 @@ function DailyActivityChart({ rows }) {
   );
 }
 function SkillTable({ title, rows, valueLabel, valueKey }) {
+  useLocale();
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       {" "}
-      <h3 className="mb-4 text-lg font-semibold text-gray-800">{title}</h3>{" "}
+      <h3 className="mb-4 text-lg font-semibold text-gray-800">
+        {t(title)}
+      </h3>{" "}
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No skill data available.</p>
+        <p className="text-sm text-gray-500">{t("No skill data available.")}</p>
       ) : (
         <div className="overflow-x-auto">
           {" "}
@@ -215,9 +239,11 @@ function SkillTable({ title, rows, valueLabel, valueKey }) {
               {" "}
               <tr className="text-left">
                 {" "}
-                <th className="py-3 pr-4 pl-3 font-semibold">Skill</th>{" "}
-                <th className="py-3 pr-4 font-semibold">City</th>{" "}
-                <th className="py-3 pr-4 font-semibold">Category</th>{" "}
+                <th className="py-3 pr-4 pl-3 font-semibold">
+                  {t("Skill")}
+                </th>{" "}
+                <th className="py-3 pr-4 font-semibold">{t("City")}</th>{" "}
+                <th className="py-3 pr-4 font-semibold">{t("Category")}</th>{" "}
                 <th className="py-3 pr-4 font-semibold">{valueLabel}</th>{" "}
               </tr>{" "}
             </thead>{" "}
@@ -249,6 +275,7 @@ function SkillTable({ title, rows, valueLabel, valueKey }) {
   );
 }
 export default function AnalyticsPage() {
+  useLocale();
   const [activeTab, setActiveTab] = useState(TABS.BUSINESS);
   const [days, setDays] = useState(7);
   const [minutes, setMinutes] = useState(15);
@@ -334,7 +361,7 @@ export default function AnalyticsPage() {
     loadLoginMonitoring();
   }, [minutes]);
   return (
-    <DashboardLayout title="Analytics">
+    <DashboardLayout title={t("Analytics")}>
       {" "}
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {" "}
@@ -346,7 +373,7 @@ export default function AnalyticsPage() {
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === TABS.BUSINESS ? "bg-gradient-to-r from-blue-600 to-green-500 text-white" : "bg-white text-gray-700 shadow-sm"}`}
           >
             {" "}
-            Business Analytics{" "}
+            {t("Business Analytics")}{" "}
           </button>{" "}
           <button
             type="button"
@@ -354,7 +381,7 @@ export default function AnalyticsPage() {
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === TABS.LOGINS ? "bg-gradient-to-r from-blue-600 to-green-500 text-white" : "bg-white text-gray-700 shadow-sm"}`}
           >
             {" "}
-            Login Monitoring{" "}
+            {t("Login Monitoring")}{" "}
           </button>{" "}
         </div>{" "}
         {activeTab === TABS.BUSINESS ? (
@@ -364,10 +391,10 @@ export default function AnalyticsPage() {
             className="rounded-xl border border-gray-300 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
           >
             {" "}
-            <option value={7}>Last 7 days</option>{" "}
-            <option value={14}>Last 14 days</option>{" "}
-            <option value={30}>Last 30 days</option>{" "}
-            <option value={90}>Last 90 days</option>{" "}
+            <option value={7}>{t("Last 7 days")}</option>{" "}
+            <option value={14}>{t("Last 14 days")}</option>{" "}
+            <option value={30}>{t("Last 30 days")}</option>{" "}
+            <option value={90}>{t("Last 90 days")}</option>{" "}
           </select>
         ) : (
           <select
@@ -376,10 +403,10 @@ export default function AnalyticsPage() {
             className="rounded-xl border border-gray-300 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
           >
             {" "}
-            <option value={15}>Last 15 minutes</option>{" "}
-            <option value={60}>Last 60 minutes</option>{" "}
-            <option value={360}>Last 6 hours</option>{" "}
-            <option value={1440}>Last 24 hours</option>{" "}
+            <option value={15}>{t("Last 15 minutes")}</option>{" "}
+            <option value={60}>{t("Last 60 minutes")}</option>{" "}
+            <option value={360}>{t("Last 6 hours")}</option>{" "}
+            <option value={1440}>{t("Last 24 hours")}</option>{" "}
           </select>
         )}{" "}
       </div>{" "}
@@ -388,7 +415,7 @@ export default function AnalyticsPage() {
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             {" "}
             <p className="text-sm text-gray-500">
-              Loading business analytics...
+              {t("Loading business analytics...")}
             </p>{" "}
           </div>
         ) : businessError ? (
@@ -401,31 +428,37 @@ export default function AnalyticsPage() {
             {" "}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               {" "}
-              <StatCard label="Searches" value={summary.searches || 0} />{" "}
-              <StatCard label="Skill Views" value={summary.skill_views || 0} />{" "}
-              <StatCard label="Contact Clicks" value={totalContacts} />{" "}
               <StatCard
-                label="Total Events"
+                label={t("Searches")}
+                value={summary.searches || 0}
+              />{" "}
+              <StatCard
+                label={t("Skill Views")}
+                value={summary.skill_views || 0}
+              />{" "}
+              <StatCard label={t("Contact Clicks")} value={totalContacts} />{" "}
+              <StatCard
+                label={t("Total Events")}
                 value={summary.total_events || 0}
               />{" "}
             </div>{" "}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               {" "}
               <StatCard
-                label="WhatsApp Clicks"
+                label={t("WhatsApp Clicks")}
                 value={summary.whatsapp_clicks || 0}
               />{" "}
               <StatCard
-                label="Email Clicks"
+                label={t("Email Clicks")}
                 value={summary.email_clicks || 0}
               />{" "}
               <StatCard
-                label="Search → View"
+                label={t("Search → View")}
                 value={`${summary.search_to_view_rate || 0}%`}
                 subtext="Skill views divided by searches"
               />{" "}
               <StatCard
-                label="View → Contact"
+                label={t("View → Contact")}
                 value={`${summary.view_to_contact_rate || 0}%`}
                 subtext="Contact clicks divided by skill views"
               />{" "}
@@ -434,13 +467,13 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               {" "}
               <BarList
-                title="Top Searched Cities"
+                title={t("Top Searched Cities")}
                 items={topCities}
                 labelKey="city"
                 valueKey="searches"
               />{" "}
               <BarList
-                title="Top Searched Categories"
+                title={t("Top Searched Categories")}
                 items={topCategories}
                 labelKey="category"
                 valueKey="searches"
@@ -450,13 +483,13 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               {" "}
               <SkillTable
-                title="Top Viewed Skills"
+                title={t("Top Viewed Skills")}
                 rows={topViewedSkills}
                 valueLabel="Views"
                 valueKey="views"
               />{" "}
               <SkillTable
-                title="Top Contacted Skills"
+                title={t("Top Contacted Skills")}
                 rows={topContactedSkills}
                 valueLabel="Contacts"
                 valueKey="contacts"
@@ -468,7 +501,7 @@ export default function AnalyticsPage() {
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           {" "}
           <p className="text-sm text-gray-500">
-            Loading login monitoring...
+            {t("Loading login monitoring...")}
           </p>{" "}
         </div>
       ) : loginError ? (
@@ -482,15 +515,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {" "}
             <StatCard
-              label="Successful Admin Logins"
+              label={t("Successful Admin Logins")}
               value={loginSummary.success_count}
             />{" "}
             <StatCard
-              label="Failed Admin Logins"
+              label={t("Failed Admin Logins")}
               value={loginSummary.failed_count}
             />{" "}
             <StatCard
-              label="Total Login Attempts"
+              label={t("Total Login Attempts")}
               value={loginSummary.total_count}
             />{" "}
           </div>{" "}
@@ -498,10 +531,12 @@ export default function AnalyticsPage() {
             {" "}
             <h3 className="mb-4 text-lg font-semibold text-gray-800">
               {" "}
-              Recent Admin Login Activity{" "}
+              {t("Recent Admin Login Activity")}{" "}
             </h3>{" "}
             {recentLogs.length === 0 ? (
-              <p className="text-sm text-gray-500">No recent login activity.</p>
+              <p className="text-sm text-gray-500">
+                {t("No recent login activity.")}
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 {" "}
@@ -514,12 +549,18 @@ export default function AnalyticsPage() {
                       <tr className="text-left">
                         {" "}
                         <th className="py-3 pr-4 pl-3 font-semibold">
-                          Email
+                          {t("Email")}
                         </th>{" "}
-                        <th className="py-3 pr-4 font-semibold">Status</th>{" "}
-                        <th className="py-3 pr-4 font-semibold">Reason</th>{" "}
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Status")}
+                        </th>{" "}
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Reason")}
+                        </th>{" "}
                         <th className="py-3 pr-4 font-semibold">IP</th>{" "}
-                        <th className="py-3 pr-4 font-semibold">Time</th>{" "}
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Time")}
+                        </th>{" "}
                       </tr>{" "}
                     </thead>{" "}
                     <tbody>

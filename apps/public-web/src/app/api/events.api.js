@@ -1,3 +1,4 @@
+import { getLanguage } from "../../i18n/index";
 import { api } from "./client";
 
 export const eventsApi = {
@@ -6,7 +7,7 @@ export const eventsApi = {
     try {
       await api.post("/events", {
         eventType,
-        meta,
+        meta: { ...meta, language: getLanguage() },
       });
     } catch {
       // ignore

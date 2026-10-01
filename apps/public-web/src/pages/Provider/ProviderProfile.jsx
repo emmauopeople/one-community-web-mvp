@@ -1,47 +1,39 @@
+import { t, te, useLocale } from "../../i18n/index.js";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import appLogo from "../../assets/images/appLogo.png";
 import { authApi } from "../../app/api/auth.api";
-
 function getApiError(ex, fallback) {
   return ex?.response?.data?.error || ex?.message || fallback;
 }
-
 function isValidPhone(phone) {
   const p = String(phone || "")
     .trim()
     .replace(/\s+/g, "");
   return /^\+?\d{8,15}$/.test(p);
 }
-
 function isValidDisplayName(name) {
   const n = String(name || "").trim();
   return n.length >= 2 && n.length <= 60;
 }
-
 export default function ProviderProfile() {
+  useLocale();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-
   const [profile, setProfile] = useState(null);
-
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
-
   const resetNotices = () => {
     setMsg("");
     setErr("");
   };
-
   const canSave = useMemo(() => {
     const nameOk = displayName.trim() ? isValidDisplayName(displayName) : true; // optional
     const phoneOk = isValidPhone(phone);
     return nameOk && phoneOk;
   }, [displayName, phone]);
-
   const load = async () => {
     setLoading(true);
     resetNotices();
@@ -56,17 +48,13 @@ export default function ProviderProfile() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     load();
   }, []);
-
   const onSave = async (e) => {
     e.preventDefault();
     if (!canSave || busy) return;
-
     resetNotices();
-
     if (displayName.trim() && !isValidDisplayName(displayName)) {
       setErr("Display name must be 2–60 characters.");
       return;
@@ -75,16 +63,13 @@ export default function ProviderProfile() {
       setErr("Phone must be digits only (optionally +), 8–15 digits.");
       return;
     }
-
     setBusy(true);
     try {
       const data = await authApi.updateProviderProfile({
         displayName: displayName.trim() || null,
         phone: phone.trim(),
       });
-
       if (!data?.ok) throw new Error(data?.error || "Update failed");
-
       setProfile(data.profile);
       setMsg("✅ Profile updated successfully.");
     } catch (ex) {
@@ -93,7 +78,6 @@ export default function ProviderProfile() {
       setBusy(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
@@ -105,17 +89,17 @@ export default function ProviderProfile() {
           >
             <img
               src={appLogo}
-              alt="One Community logo"
+              alt={t("One Community logo")}
               className="h-8 w-8 object-contain"
             />
-            <span className="text-base sm:text-lg">One Community</span>
+            <span className="text-base sm:text-lg">{t("One Community")}</span>
           </Link>
 
           <Link
             to="/provider/skills"
             className="h-10 px-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition text-sm"
           >
-            Back to Skills
+            {t("Back to Skills")}
           </Link>
         </div>
       </header>
@@ -126,7 +110,7 @@ export default function ProviderProfile() {
           to="/provider/skills"
           className="text-sm text-blue-700 hover:underline"
         >
-          ← Back
+          {t("\u2190 Back")}
         </Link>
       </div>
 
@@ -135,9 +119,11 @@ export default function ProviderProfile() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-xl font-semibold">Provider Profile</h1>
+                <h1 className="text-xl font-semibold">
+                  {t("Provider Profile")}
+                </h1>
                 <p className="mt-1 text-sm text-slate-600">
-                  Update your display name and phone number.
+                  {t("Update your display name and phone number.")}
                 </p>
               </div>
               <button
@@ -146,7 +132,7 @@ export default function ProviderProfile() {
                 disabled={loading || busy}
                 className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-medium hover:bg-slate-100 disabled:opacity-60"
               >
-                Refresh
+                {t("Refresh")}
               </button>
             </div>
 
@@ -164,17 +150,19 @@ export default function ProviderProfile() {
             )}
 
             {loading ? (
-              <div className="mt-4 text-sm text-slate-600">Loading…</div>
+              <div className="mt-4 text-sm text-slate-600">
+                {t("Loading\u2026")}
+              </div>
             ) : (
               <form className="mt-4 space-y-3" onSubmit={onSave}>
                 <div className="text-xs text-slate-500">
-                  Logged in as:{" "}
+                  {t("Logged in as:")}{" "}
                   <span className="font-semibold">{profile?.email}</span>
                 </div>
 
                 <input
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  placeholder="Display name (2–60 chars)"
+                  placeholder={t("Display name (2–60 chars)")}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   disabled={busy}
@@ -182,7 +170,7 @@ export default function ProviderProfile() {
 
                 <input
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  placeholder="Phone (e.g., +2376xxxxxxx)"
+                  placeholder={t("Phone (e.g., +2376xxxxxxx)")}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={busy}
@@ -198,12 +186,13 @@ export default function ProviderProfile() {
                       : "bg-gradient-to-r from-blue-600 to-emerald-500 hover:opacity-95 active:scale-[0.99]")
                   }
                 >
-                  {busy ? "Saving…" : "Save changes"}
+                  {busy ? t("Saving…") : t("Save changes")}
                 </button>
 
                 <div className="text-xs text-slate-500">
-                  Display name will appear in public search results and skill
-                  details.
+                  {t(
+                    "Display name will appear in public search results and skill details.",
+                  )}
                 </div>
               </form>
             )}
@@ -213,7 +202,8 @@ export default function ProviderProfile() {
 
       <footer className="w-full bg-white border-t border-slate-200">
         <div className="w-full px-4 sm:px-6 lg:px-10 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} One Community — Provider Portal
+          © {new Date().getFullYear()}
+          {t("One Community \u2014 Provider Portal")}
         </div>
       </footer>
     </div>
