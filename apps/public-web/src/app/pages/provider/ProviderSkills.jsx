@@ -38,28 +38,20 @@ export default function ProviderSkills() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
-  // Refs to scroll/focus Create Skill section
-  const formRef = useRef(null);
   const titleRef = useRef(null);
-
-  const isMobile = () => {
-    try {
-      return window.matchMedia("(max-width: 767px)").matches; // Tailwind md starts at 768px :contentReference[oaicite:1]{index=1}
-    } catch {
-      return window.innerWidth < 768;
+  const listTitleRef = useRef(null);
+  const [view, setView] = useState("list");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (view === "form") titleRef.current?.focus();
+    else listTitleRef.current?.focus();
+  }, [view]);
+  const backToSkills = () => {
+    if (!saving) {
+      setView("list");
+      clearNotice();
     }
-  };
-
-  const scrollToForm = () => {
-    if (!formRef.current) return;
-    // Smooth scroll to Create Skill section :contentReference[oaicite:2]{index=2}
-    formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Focus title after scroll settles
-    setTimeout(() => titleRef.current?.focus?.(), 350);
-  };
-
-  const goToFormIfMobile = () => {
-    if (isMobile()) scrollToForm();
   };
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -133,6 +125,7 @@ export default function ProviderSkills() {
   }, []);
 
   const startCreate = () => {
+    setView("form");
     setEditingId(null);
     setForm({
       ...empty,
@@ -144,6 +137,7 @@ export default function ProviderSkills() {
   };
 
   const startEdit = (s) => {
+    setView("form");
     setEditingId(s.id);
     setForm({
       title: s.title || "",
@@ -191,6 +185,7 @@ export default function ProviderSkills() {
       );
     }
 
+    setSaving(true);
     try {
       const payload = {
         ...form,
@@ -213,6 +208,8 @@ export default function ProviderSkills() {
       await load();
     } catch (e) {
       showError(e?.response?.data?.error || e?.message || "Save failed.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -221,7 +218,7 @@ export default function ProviderSkills() {
     try {
       await skillsApi.providerDelete(id);
       showSuccess("✅ Skill deleted.");
-      if (editingId === id) startCreate();
+      if (editingId === id) setEditingId(null);
       await load();
     } catch (e) {
       showError(e?.response?.data?.error || e?.message || "Delete failed.");
@@ -424,224 +421,227 @@ export default function ProviderSkills() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Left: list */}
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-            {/* Header row with mobile New skill button */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold">My skills</div>
+        <div>
+          {view === "list" ? (
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
 
-              {/* Phone-size new skill button (shown only below md) */}
-              <button
-                type="button"
-                onClick={() => {
-                  startCreate();
-                  // scroll/focus Create skill section on phones
-                  setTimeout(goToFormIfMobile, 0);
-                }}
-                className="md:hidden h-10 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold text-sm shadow-sm hover:opacity-95 active:scale-[0.99]"
-              >
-                New skill
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="mt-3 text-sm text-slate-600">Loading…</div>
-            ) : (
-              <div className="mt-3 space-y-2">
-                {skills.length === 0 ? (
-                  <div className="text-sm text-slate-600">No skills yet.</div>
-                ) : (
-                  skills.map((s) => (
-                    <div
-                      key={s.id}
-                      className="rounded-xl border border-slate-100 p-3 flex items-start justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold truncate">
-                          {s.title}
-                        </div>
-                        <div className="text-xs text-slate-600 truncate">
-                          {s.category} • {s.city}
-                        </div>
-
-                        {s.indexImageUrl ? (
-                          <img
-                            alt="index"
-                            src={s.indexImageUrl}
-                            className="mt-2 h-16 w-24 object-cover rounded-lg border"
-                          />
-                        ) : (
-                          <div className="mt-2 text-xs text-slate-500">
-                            No image yet
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            startEdit(s);
-                            // on phone: also bring Create/Edit section into view
-                            setTimeout(goToFormIfMobile, 0);
-                          }}
-                          className="h-10 px-3 rounded-xl bg-slate-100 text-sm font-medium hover:bg-slate-200"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => remove(s.id)}
-                          className="h-10 px-3 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right: form */}
-          <div
-            ref={formRef}
-            className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold">
-                {editingId ? "Edit skill" : "Create skill"}
-              </div>
-
-              {/* Existing New Skill button (desktop + mobile) */}
-              <button
-                type="button"
-                onClick={() => {
-                  startCreate();
-                  setTimeout(goToFormIfMobile, 0);
-                }}
-                className="h-10 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95"
-              >
-                New Skill
-              </button>
-            </div>
-
-            <div className="mt-3 space-y-3">
-              <input
-                ref={titleRef}
-                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Title"
-                value={form.title}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, title: e.target.value }))
-                }
-              />
-
-              {/* Category dropdown + Other */}
-              <div className="space-y-2">
-                <select
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                  value={categorySelect}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setCategorySelect(v);
-                    if (v !== "__other__") setCategoryOther("");
-                    setForm((p) => ({ ...p, category: v }));
-                  }}
+              <div className="flex items-center justify-between gap-3">
+                <h1
+                  ref={listTitleRef}
+                  tabIndex={-1}
+                  className="text-lg font-semibold outline-none"
                 >
-                  <option value="" disabled>
-                    Select category…
-                  </option>
-                  {CATEGORY_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                  My skills
+                </h1>
 
-                {categorySelect === "__other__" ? (
-                  <input
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                    placeholder="Type category (e.g., electrician)"
-                    value={categoryOther}
-                    onChange={(e) => setCategoryOther(e.target.value)}
-                  />
-                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    startCreate();
+                  }}
+                  className="h-10 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold text-sm shadow-sm hover:opacity-95 active:scale-[0.99]"
+                >
+                  New skill
+                </button>
               </div>
 
-              <input
-                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Tags (comma separated)"
-                value={form.tags}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, tags: e.target.value }))
-                }
-              />
+              {loading ? (
+                <div className="mt-3 text-sm text-slate-600">Loading…</div>
+              ) : (
+                <div
+                  className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3"
+                  aria-label="Created skills"
+                >
+                  {skills.length === 0 ? (
+                    <div className="text-sm text-slate-600">No skills yet.</div>
+                  ) : (
+                    skills.map((s) => (
+                      <div
+                        key={s.id}
+                        className="rounded-xl border border-slate-100 p-3 flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold truncate">
+                            {s.title}
+                          </div>
+                          <div className="text-xs text-slate-600 truncate">
+                            {s.category} • {s.city}
+                          </div>
 
-              <textarea
-                className="min-h-[96px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Description"
-                value={form.description}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, description: e.target.value }))
-                }
-              />
+                          {s.indexImageUrl ? (
+                            <img
+                              alt="index"
+                              src={s.indexImageUrl}
+                              className="mt-2 h-16 w-24 object-cover rounded-lg border"
+                            />
+                          ) : (
+                            <div className="mt-2 text-xs text-slate-500">
+                              No image yet
+                            </div>
+                          )}
+                        </div>
 
-              <div className="rounded-xl bg-slate-50 p-3 text-sm">
-                <strong>
-                  {editingId
-                    ? "Saved listing location"
-                    : "Provider operating location"}
-                </strong>
-                <p>
-                  {[form.area, form.city, form.region]
-                    .filter(Boolean)
-                    .join(", ") || "Complete provider location setup."}
-                </p>
-                {editingId && (
-                  <button
-                    type="button"
-                    className="text-blue-700 underline p-2"
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        ...profileLocation,
-                        locationSource: "provider_profile",
-                      }))
-                    }
-                  >
-                    Use current profile location for this listing
-                  </button>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={save}
-                disabled={!locationReady}
-                className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 disabled:opacity-60"
-              >
-                {editingId ? "Save changes" : "Create skill"}
-              </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              startEdit(s);
+                            }}
+                            className="h-10 px-3 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(s.id)}
+                            className="h-10 px-3 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold">
+                  {editingId ? "Edit skill" : "Create skill"}
+                </div>
 
-            {editingId ? (
-              <SkillMediaUploader
-                skillId={editingId}
-                onUploaded={() => {
-                  load();
-                  showSuccess("✅ Images uploaded and linked to the skill.");
-                }}
-                onError={(t) => showError(t)}
-              />
-            ) : (
-              <div className="mt-4 text-xs text-slate-500">
-                Create the skill first, then upload images.
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={backToSkills}
+                  className="min-h-11 px-3 text-sm text-blue-700 disabled:opacity-50"
+                >
+                  ‹ Back to My skills
+                </button>
               </div>
-            )}
-          </div>
+
+              <div className="mt-3 space-y-3">
+                <input
+                  ref={titleRef}
+                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                  placeholder="Title"
+                  value={form.title}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, title: e.target.value }))
+                  }
+                />
+
+                {/* Category dropdown + Other */}
+                <div className="space-y-2">
+                  <select
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                    value={categorySelect}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCategorySelect(v);
+                      if (v !== "__other__") setCategoryOther("");
+                      setForm((p) => ({ ...p, category: v }));
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select category…
+                    </option>
+                    {CATEGORY_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {categorySelect === "__other__" ? (
+                    <input
+                      className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                      placeholder="Type category (e.g., electrician)"
+                      value={categoryOther}
+                      onChange={(e) => setCategoryOther(e.target.value)}
+                    />
+                  ) : null}
+                </div>
+
+                <input
+                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                  placeholder="Tags (comma separated)"
+                  value={form.tags}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, tags: e.target.value }))
+                  }
+                />
+
+                <textarea
+                  className="min-h-[96px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                  placeholder="Description"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, description: e.target.value }))
+                  }
+                />
+
+                <div className="rounded-xl bg-slate-50 p-3 text-sm">
+                  <strong>
+                    {editingId
+                      ? "Saved listing location"
+                      : "Provider operating location"}
+                  </strong>
+                  <p>
+                    {[form.area, form.city, form.region]
+                      .filter(Boolean)
+                      .join(", ") || "Complete provider location setup."}
+                  </p>
+                  {editingId && (
+                    <button
+                      type="button"
+                      className="text-blue-700 underline p-2"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          ...profileLocation,
+                          locationSource: "provider_profile",
+                        }))
+                      }
+                    >
+                      Use current profile location for this listing
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={!locationReady || saving}
+                  className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold shadow-sm hover:opacity-95 disabled:opacity-60"
+                >
+                  {saving
+                    ? "Saving…"
+                    : editingId
+                      ? "Save changes"
+                      : "Create skill"}
+                </button>
+              </div>
+
+              {editingId ? (
+                <SkillMediaUploader
+                  skillId={editingId}
+                  onUploaded={() => {
+                    load();
+                    showSuccess("✅ Images uploaded and linked to the skill.");
+                  }}
+                  onError={(t) => showError(t)}
+                />
+              ) : (
+                <div className="mt-4 text-xs text-slate-500">
+                  Create the skill first, then upload images.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
 
