@@ -6,8 +6,11 @@ import express from "express";
 import multer from "multer";
 import { query } from "../../db.js";
 import { requireAuth, requireRole } from "../middleware/requireAuth.js";
-import { presignPut, presignGet, uploadBufferToS3 } from "../services/s3.js";
+import { presignGet, uploadBufferToS3, deleteStorageObject } from "../services/s3.js";
 import { logEvent } from "../services/eventService.js";
+
+import { randomUUID } from "node:crypto";
+import { optimizeImage, InvalidImage } from "../services/imageOptimization.js";
 
 const router = express.Router();
 
@@ -22,13 +25,6 @@ const ALLOWED_MIME = new Set(
     .map((s) => s.trim())
     .filter(Boolean),
 );
-
-function mimeToExt(mime) {
-  if (mime === "image/jpeg") return "jpg";
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return null;
-}
 
 function normalizeUploadMime(mime, filename = "") {
   const cleanMime = String(mime || "")
@@ -122,477 +118,73 @@ async function getOwnedSkill({ skillId, providerId }) {
   return r.rows[0] || null;
 }
 
-/**
- * POST /media/skills/:skillId/presign
- * Existing desktop/browser-to-S3 flow.
- * Body: { files: [{ mimeType, sizeBytes, sortOrder }] }
- * Returns: { uploads: [{ sortOrder, s3Key, putUrl }] }
- */
-router.post(
-  "/media/skills/:skillId/presign",
-  requireAuth,
-  requireRole("provider"),
-  async (req, res) => {
-    try {
-      if (!BUCKET) {
-        return res.status(500).json({ error: "S3_BUCKET not configured" });
-      }
+// All new images must pass through validation and optimization on the API.
+for (const action of ['presign', 'confirm']) {
+  router.post(`/media/skills/:skillId/${action}`, requireAuth, requireRole('provider'), (_req, res) =>
+    res.status(410).json({ error: 'Please use the image uploader to upload optimized images.' }));
+}
 
-      const providerId = req.session.user.id;
-
-      const gate = await providerMustBeActive(providerId);
-      if (!gate.ok) return res.status(gate.code).json({ error: gate.error });
-
-      const skillId = Number(req.params.skillId);
-      if (!skillId) return res.status(400).json({ error: "Invalid skill id" });
-
-      const skill = await getOwnedSkill({ skillId, providerId });
-      if (!skill) return res.status(404).json({ error: "Skill not found" });
-
-      if (skill.status !== "active") {
-        return res.status(403).json({ error: "Skill is inactive" });
-      }
-
-      const files = Array.isArray(req.body.files) ? req.body.files : [];
-
-      if (files.length === 0) {
-        return res.status(400).json({ error: "No files provided" });
-      }
-
-      if (files.length > 3) {
-        return res.status(400).json({ error: "Max 3 images allowed" });
-      }
-
-      const requested = new Set();
-
-      for (const f of files) {
-        const mimeType = normalizeUploadMime(f?.mimeType || "");
-        const sizeBytes = Number(f?.sizeBytes);
-        const sortOrder = Number(f?.sortOrder);
-
-        if (!ALLOWED_MIME.has(mimeType)) {
-          return res
-            .status(400)
-            .json({ error: `Unsupported mimeType: ${mimeType}` });
-        }
-
-        if (
-          !Number.isFinite(sizeBytes) ||
-          sizeBytes <= 0 ||
-          sizeBytes > MAX_BYTES
-        ) {
-          return res.status(400).json({ error: "Invalid file size" });
-        }
-
-        if (![0, 1, 2].includes(sortOrder)) {
-          return res
-            .status(400)
-            .json({ error: "sortOrder must be 0, 1, or 2" });
-        }
-
-        if (requested.has(sortOrder)) {
-          return res
-            .status(400)
-            .json({ error: "Duplicate sortOrder in request" });
-        }
-
-        requested.add(sortOrder);
-      }
-
-      const uploads = [];
-
-      for (const f of files) {
-        const mimeType = normalizeUploadMime(f.mimeType || "");
-        const sortOrder = Number(f.sortOrder);
-        const ext = mimeToExt(mimeType);
-
-        if (!ext) {
-          return res.status(400).json({ error: "Invalid mime type" });
-        }
-
-        const s3Key = `${PREFIX}/${providerId}/${skillId}/img_${sortOrder}.${ext}`;
-
-        const putUrl = await presignPut({
-          bucket: BUCKET,
-          key: s3Key,
-          contentType: mimeType,
-          expiresIn: EXPIRES,
-        });
-
-        uploads.push({ sortOrder, s3Key, putUrl });
-      }
-
-      await logEvent({
-        req,
-        eventType: "media_presign",
-        userId: providerId,
-        meta: { skillId, count: uploads.length },
-      });
-
-      return res.json({ uploads });
-    } catch (e) {
-      console.error("MEDIA PRESIGN ERROR:", e);
-      return res.status(500).json({ error: "Failed to create upload URLs" });
+router.post('/media/skills/:skillId/upload-direct', requireAuth, requireRole('provider'), uploadSkillImages, async (req, res) => {
+  const uploadedKeys = [];
+  let databaseStarted = false;
+  try {
+    if (!BUCKET) return res.status(503).json({error:'Image storage is not configured.'});
+    const providerId = req.session.user.id;
+    const gate = await providerMustBeActive(providerId);
+    if (!gate.ok) return res.status(gate.code).json({error:gate.error});
+    const skillId = Number(req.params.skillId);
+    if (!Number.isSafeInteger(skillId) || skillId <= 0) return res.status(400).json({error:'Invalid skill id'});
+    const skill = await getOwnedSkill({skillId,providerId});
+    if (!skill) return res.status(404).json({error:'Skill not found'});
+    if (skill.status !== 'active') return res.status(403).json({error:'Skill is inactive'});
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({error:'No images uploaded'});
+    const orders = parseSortOrders(req.body.sortOrders, files.length);
+    if (!orders || new Set(orders).size !== orders.length || orders.some(n=>![0,1,2].includes(n)))
+      return res.status(400).json({error:'Choose distinct image slots from 0 to 2.'});
+    // Validate the entire batch before writing any objects.
+    const items = [];
+    for (let i=0; i<files.length; i++) {
+      const file = files[i];
+      if (!ALLOWED_MIME.has(normalizeUploadMime(file.mimetype,file.originalname))) throw new InvalidImage('Choose a non-animated JPEG, PNG or WebP image.');
+      const variants = await optimizeImage(file.buffer);
+      const base = `${PREFIX}/${providerId}/${skillId}/${randomUUID()}`;
+      items.push({sort_order:orders[i],s3_key:`${base}.webp`,thumbnail_s3_key:`${base}.thumb.webp`,
+        size_bytes:variants.detail.buffer.length,thumbnail_size_bytes:variants.thumbnail.buffer.length,variants});
     }
-  },
-);
-
-/**
- * POST /media/skills/:skillId/upload-direct
- * Mobile-safe upload path:
- * Browser -> Backend API -> S3
- *
- * multipart/form-data:
- * - images: image files, max 3
- * - sortOrders: JSON array, example: [0,1,2]
- */
-router.post(
-  "/media/skills/:skillId/upload-direct",
-  requireAuth,
-  requireRole("provider"),
-  uploadSkillImages,
-  async (req, res) => {
-    try {
-      if (!BUCKET) {
-        return res.status(500).json({ error: "S3_BUCKET not configured" });
+    for (const item of items) {
+      for (const [key,buffer] of [[item.s3_key,item.variants.detail.buffer],[item.thumbnail_s3_key,item.variants.thumbnail.buffer]]) {
+        uploadedKeys.push(key);
+        await uploadBufferToS3({bucket:BUCKET,key,buffer,contentType:'image/webp'});
       }
-
-      const providerId = req.session.user.id;
-
-      const gate = await providerMustBeActive(providerId);
-      if (!gate.ok) return res.status(gate.code).json({ error: gate.error });
-
-      const skillId = Number(req.params.skillId);
-      if (!skillId) return res.status(400).json({ error: "Invalid skill id" });
-
-      const skill = await getOwnedSkill({ skillId, providerId });
-      if (!skill) return res.status(404).json({ error: "Skill not found" });
-
-      if (skill.status !== "active") {
-        return res.status(403).json({ error: "Skill is inactive" });
-      }
-
-      const files = Array.isArray(req.files) ? req.files : [];
-
-      if (files.length === 0) {
-        return res.status(400).json({ error: "No images uploaded" });
-      }
-
-      if (files.length > 3) {
-        return res.status(400).json({ error: "Max 3 images allowed" });
-      }
-
-      const sortOrders = parseSortOrders(req.body.sortOrders, files.length);
-
-      if (!sortOrders) {
-        return res.status(400).json({
-          error: "sortOrders must match number of uploaded images",
-        });
-      }
-
-      const seen = new Set();
-      const uploadedItems = [];
-
-      for (let i = 0; i < files.length; i += 1) {
-        const file = files[i];
-        const sortOrder = Number(sortOrders[i]);
-
-        const mimeType = normalizeUploadMime(file.mimetype, file.originalname);
-        const sizeBytes = Number(file.size);
-
-        if (!ALLOWED_MIME.has(mimeType)) {
-          return res.status(400).json({
-            error: `Unsupported image type: ${mimeType || file.mimetype}`,
-          });
-        }
-
-        if (
-          !Number.isFinite(sizeBytes) ||
-          sizeBytes <= 0 ||
-          sizeBytes > MAX_BYTES
-        ) {
-          return res.status(400).json({ error: "Invalid file size" });
-        }
-
-        if (![0, 1, 2].includes(sortOrder)) {
-          return res.status(400).json({
-            error: "sortOrder must be 0, 1, or 2",
-          });
-        }
-
-        if (seen.has(sortOrder)) {
-          return res.status(400).json({
-            error: "Duplicate sortOrder in upload",
-          });
-        }
-
-        seen.add(sortOrder);
-
-        const ext = mimeToExt(mimeType);
-
-        if (!ext) {
-          return res.status(400).json({ error: "Invalid image type" });
-        }
-
-        const s3Key = `${PREFIX}/${providerId}/${skillId}/img_${sortOrder}.${ext}`;
-
-        await uploadBufferToS3({
-          bucket: BUCKET,
-          key: s3Key,
-          buffer: file.buffer,
-          contentType: mimeType,
-        });
-
-        uploadedItems.push({
-          s3Key,
-          mimeType,
-          sizeBytes,
-          sortOrder,
-        });
-      }
-
-      await query("BEGIN");
-
-      try {
-        for (const item of uploadedItems) {
-          await query(
-            `INSERT INTO skill_media
-             (skill_id, provider_id, media_type, bucket, s3_key, mime_type, size_bytes, sort_order, updated_at)
-             VALUES ($1,$2,'image',$3,$4,$5,$6,$7,NOW())
-             ON CONFLICT (skill_id, sort_order)
-             DO UPDATE SET
-               bucket=$3,
-               s3_key=$4,
-               mime_type=$5,
-               size_bytes=$6,
-               updated_at=NOW()`,
-            [
-              skillId,
-              providerId,
-              BUCKET,
-              item.s3Key,
-              item.mimeType,
-              item.sizeBytes,
-              item.sortOrder,
-            ],
-          );
-        }
-
-        await query("COMMIT");
-      } catch (err) {
-        await query("ROLLBACK");
-        throw err;
-      }
-
-      const rows = await query(
-        `SELECT id, s3_key, mime_type, size_bytes, sort_order, created_at, updated_at
-         FROM skill_media
-         WHERE skill_id=$1
-         ORDER BY sort_order ASC`,
-        [skillId],
-      );
-
-      const media = [];
-
-      for (const r of rows.rows) {
-        const url = await presignGet({
-          bucket: BUCKET,
-          key: r.s3_key,
-          expiresIn: EXPIRES,
-        });
-
-        media.push({
-          id: r.id,
-          sortOrder: r.sort_order,
-          mimeType: r.mime_type,
-          sizeBytes: r.size_bytes,
-          url,
-        });
-      }
-
-      try {
-        await logEvent({
-          req,
-          eventType: "media_confirm",
-          userId: providerId,
-          meta: {
-            skillId,
-            count: uploadedItems.length,
-            uploadMode: "backend_direct",
-          },
-        });
-      } catch (logErr) {
-        console.error(
-          "MEDIA DIRECT UPLOAD LOG EVENT ERROR:",
-          logErr?.message || logErr,
-        );
-      }
-
-      return res.json({ ok: true, media });
-    } catch (e) {
-      console.error("MEDIA DIRECT UPLOAD ERROR:", e);
-      return res.status(500).json({
-        error: "Failed to upload images",
-      });
     }
-  },
-);
-
-/**
- * POST /media/skills/:skillId/confirm
- * Existing presigned-S3 confirm route.
- * Body: { items: [{ s3Key, mimeType, sizeBytes, sortOrder }] }
- * Returns: { media: [...] } with signed GET URLs.
- */
-router.post(
-  "/media/skills/:skillId/confirm",
-  requireAuth,
-  requireRole("provider"),
-  async (req, res) => {
-    try {
-      if (!BUCKET) {
-        return res.status(500).json({ error: "S3_BUCKET not configured" });
-      }
-
-      const providerId = req.session.user.id;
-
-      const gate = await providerMustBeActive(providerId);
-      if (!gate.ok) return res.status(gate.code).json({ error: gate.error });
-
-      const skillId = Number(req.params.skillId);
-      if (!skillId) return res.status(400).json({ error: "Invalid skill id" });
-
-      const skill = await getOwnedSkill({ skillId, providerId });
-      if (!skill) return res.status(404).json({ error: "Skill not found" });
-
-      if (skill.status !== "active") {
-        return res.status(403).json({ error: "Skill is inactive" });
-      }
-
-      const items = Array.isArray(req.body.items) ? req.body.items : [];
-
-      if (items.length === 0) {
-        return res.status(400).json({ error: "No items provided" });
-      }
-
-      if (items.length > 3) {
-        return res.status(400).json({ error: "Max 3 images allowed" });
-      }
-
-      const prefix = `${PREFIX}/${providerId}/${skillId}/`;
-      const seen = new Set();
-
-      for (const it of items) {
-        const s3Key = String(it?.s3Key || "").trim();
-        const mimeType = normalizeUploadMime(it?.mimeType || "");
-        const sizeBytes = Number(it?.sizeBytes);
-        const sortOrder = Number(it?.sortOrder);
-
-        if (!s3Key.startsWith(prefix)) {
-          return res.status(400).json({ error: "Invalid s3Key prefix" });
-        }
-
-        if (!ALLOWED_MIME.has(mimeType)) {
-          return res.status(400).json({ error: "Unsupported mimeType" });
-        }
-
-        if (
-          !Number.isFinite(sizeBytes) ||
-          sizeBytes <= 0 ||
-          sizeBytes > MAX_BYTES
-        ) {
-          return res.status(400).json({ error: "Invalid file size" });
-        }
-
-        if (![0, 1, 2].includes(sortOrder)) {
-          return res
-            .status(400)
-            .json({ error: "sortOrder must be 0, 1, or 2" });
-        }
-
-        if (seen.has(sortOrder)) {
-          return res
-            .status(400)
-            .json({ error: "Duplicate sortOrder in confirm" });
-        }
-
-        seen.add(sortOrder);
-      }
-
-      await query("BEGIN");
-
-      try {
-        for (const it of items) {
-          const mimeType = normalizeUploadMime(it.mimeType || "");
-
-          await query(
-            `INSERT INTO skill_media
-             (skill_id, provider_id, media_type, bucket, s3_key, mime_type, size_bytes, sort_order, updated_at)
-             VALUES ($1,$2,'image',$3,$4,$5,$6,$7,NOW())
-             ON CONFLICT (skill_id, sort_order)
-             DO UPDATE SET
-               bucket=$3,
-               s3_key=$4,
-               mime_type=$5,
-               size_bytes=$6,
-               updated_at=NOW()`,
-            [
-              skillId,
-              providerId,
-              BUCKET,
-              it.s3Key,
-              mimeType,
-              it.sizeBytes,
-              it.sortOrder,
-            ],
-          );
-        }
-
-        await query("COMMIT");
-      } catch (err) {
-        await query("ROLLBACK");
-        throw err;
-      }
-
-      const rows = await query(
-        `SELECT id, s3_key, mime_type, size_bytes, sort_order, created_at, updated_at
-         FROM skill_media
-         WHERE skill_id=$1
-         ORDER BY sort_order ASC`,
-        [skillId],
-      );
-
-      const media = [];
-
-      for (const r of rows.rows) {
-        const url = await presignGet({
-          bucket: BUCKET,
-          key: r.s3_key,
-          expiresIn: EXPIRES,
-        });
-
-        media.push({
-          id: r.id,
-          sortOrder: r.sort_order,
-          mimeType: r.mime_type,
-          sizeBytes: r.size_bytes,
-          url,
-        });
-      }
-
-      await logEvent({
-        req,
-        eventType: "media_confirm",
-        userId: providerId,
-        meta: { skillId, count: items.length },
-      });
-
-      return res.json({ ok: true, media });
-    } catch (e) {
-      console.error("MEDIA CONFIRM ERROR:", e);
-      return res.status(500).json({ error: "Failed to confirm uploads" });
+    // One SQL statement is atomic; BEGIN/COMMIT through pooled query() was unsafe.
+    databaseStarted = true;
+    const saved = await query(`INSERT INTO skill_media
+      (skill_id,provider_id,media_type,bucket,s3_key,mime_type,size_bytes,sort_order,thumbnail_s3_key,thumbnail_size_bytes,updated_at)
+      SELECT $1,$2,'image',$3,x.s3_key,'image/webp',x.size_bytes,x.sort_order,x.thumbnail_s3_key,x.thumbnail_size_bytes,NOW()
+      FROM jsonb_to_recordset($4::jsonb) AS x(s3_key text,size_bytes bigint,sort_order int,thumbnail_s3_key text,thumbnail_size_bytes bigint)
+      WHERE EXISTS (SELECT 1 FROM skills s JOIN users u ON u.id=s.provider_id WHERE s.id=$1 AND s.provider_id=$2 AND s.status='active' AND u.status='active')
+      ON CONFLICT (skill_id,sort_order) DO UPDATE SET bucket=EXCLUDED.bucket,s3_key=EXCLUDED.s3_key,
+      mime_type=EXCLUDED.mime_type,size_bytes=EXCLUDED.size_bytes,thumbnail_s3_key=EXCLUDED.thumbnail_s3_key,
+      thumbnail_size_bytes=EXCLUDED.thumbnail_size_bytes,updated_at=NOW() RETURNING id`,
+      [skillId,providerId,BUCKET,JSON.stringify(items.map(({variants,...item})=>item))]);
+    if (saved.rows.length !== items.length) {
+      databaseStarted = false;
+      throw new Error('Listing changed during upload');
     }
-  },
-);
-
+    const rows = await query('SELECT id,s3_key,mime_type,size_bytes,sort_order FROM skill_media WHERE skill_id=$1 ORDER BY sort_order',[skillId]);
+    const media = [];
+    for (const row of rows.rows) media.push({id:row.id,sortOrder:row.sort_order,mimeType:row.mime_type,sizeBytes:Number(row.size_bytes),
+      url:await presignGet({bucket:BUCKET,key:row.s3_key,expiresIn:EXPIRES})});
+    try { await logEvent({req,eventType:'media_confirm',userId:providerId,meta:{skillId,count:items.length,uploadMode:'optimized'}}); } catch {}
+    return res.json({ok:true,media});
+  } catch (error) {
+    // If DB commit status is unknown, retain objects for reconciliation instead of risking broken references.
+    if (!databaseStarted) for (const key of uploadedKeys) {
+      try { await deleteStorageObject({bucket:BUCKET,key}); } catch { console.error('Image cleanup failed; storage reconciliation required.'); }
+    }
+    return res.status(error instanceof InvalidImage ? 400 : 500).json({error:error instanceof InvalidImage ? error.message : 'Failed to upload images'});
+  }
+});
 export default router;

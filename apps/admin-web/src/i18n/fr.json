@@ -733,5 +733,10 @@
   "Unable to open service": "Impossible d’ouvrir le service",
   "Unable to open provider profile": "Impossible d’ouvrir le profil du prestataire",
   "Unable to load more listings": "Impossible de charger d’autres annonces",
-  "Please retry.": "Veuillez réessayer."
+  "Please retry.": "Veuillez réessayer.",
+  "Choose a non-animated JPEG, PNG or WebP image.": "Choisissez une image JPEG, PNG ou WebP non animée.",
+  "Invalid image. Choose a JPEG, PNG or WebP under 40 megapixels.": "Image invalide. Choisissez une image JPEG, PNG ou WebP de moins de 40 mégapixels.",
+  "Unable to optimize image. Please choose another image.": "Impossible d’optimiser cette image. Choisissez une autre image.",
+  "Failed to upload images": "Impossible d’envoyer les images",
+  "Choose distinct image slots from 0 to 2.": "Choisissez des emplacements distincts de 0 à 2."
 }

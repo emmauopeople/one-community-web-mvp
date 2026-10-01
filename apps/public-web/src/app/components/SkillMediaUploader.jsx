@@ -25,66 +25,7 @@ function normalizeMime(type, name = "") {
   return cleanType;
 }
 
-//helper function to compress images on the client side before upload, to save bandwidth and speed up upload times
-async function compressImageIfNeeded(file) {
-  const mime = normalizeMime(file.type, file.name);
-
-  // Only compress normal image types
-  if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
-    return file;
-  }
-
-  // If already under 2.5MB, keep original
-  const targetBytes = 2.5 * 1024 * 1024;
-  if (file.size <= targetBytes) {
-    return file;
-  }
-  const imageUrl = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.src = imageUrl;
-    });
-    const maxDimension = 1600;
-    let { width, height } = img;
-    if (width > height && width > maxDimension) {
-      height = Math.round((height * maxDimension) / width);
-      width = maxDimension;
-    } else if (height > maxDimension) {
-      width = Math.round((width * maxDimension) / height);
-      height = maxDimension;
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, width, height);
-    const compressedBlob = await new Promise((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.75);
-    });
-    if (!compressedBlob) {
-      return file;
-    }
-    const compressedFile = new File(
-      [compressedBlob],
-      file.name.replace(/\.(png|webp|jpg|jpeg)$/i, ".jpg"),
-      {
-        type: "image/jpeg",
-        lastModified: Date.now(),
-      },
-    );
-    console.log("IMAGE COMPRESSED:", {
-      originalName: file.name,
-      originalSize: file.size,
-      compressedSize: compressedFile.size,
-    });
-    return compressedFile;
-  } finally {
-    URL.revokeObjectURL(imageUrl);
-  }
-}
+import { compressImageIfNeeded } from "../../utils/imageCompression.js";
 export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
   useLocale();
   const [filesBySlot, setFilesBySlot] = useState({
@@ -134,6 +75,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
       }));
     }
     try {
+      if (!ALLOWED.has(normalizeMime(file.type,file.name))) return showError("Only JPG, PNG, or WEBP images are allowed.");
       const compressedFile = await compressImageIfNeeded(file);
       const mime = normalizeMime(compressedFile.type, compressedFile.name);
       if (!ALLOWED.has(mime)) {
@@ -166,19 +108,7 @@ export default function SkillMediaUploader({ skillId, onUploaded, onError }) {
         return showError("Select at least one image.");
       }
       setBusy(true);
-      console.log("MEDIA DIRECT UPLOAD STARTING:", {
-        skillId,
-        selectedCount: selected.length,
-        files: selected.map(({ slot, file }) => ({
-          slot,
-          name: file.name,
-          type: file.type,
-          normalizedMime: normalizeMime(file.type, file.name),
-          size: file.size,
-        })),
-      });
       const done = await mediaApi.uploadSkillDirect(skillId, filesBySlot);
-      console.log("MEDIA DIRECT UPLOAD SUCCESS:", done);
       showSuccess("✅ Images uploaded.");
       setFilesBySlot({
         0: null,

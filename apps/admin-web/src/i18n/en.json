@@ -733,5 +733,10 @@
   "Unable to open service": "Unable to open service",
   "Unable to open provider profile": "Unable to open provider profile",
   "Unable to load more listings": "Unable to load more listings",
-  "Please retry.": "Please retry."
+  "Please retry.": "Please retry.",
+  "Choose a non-animated JPEG, PNG or WebP image.": "Choose a non-animated JPEG, PNG or WebP image.",
+  "Invalid image. Choose a JPEG, PNG or WebP under 40 megapixels.": "Invalid image. Choose a JPEG, PNG or WebP under 40 megapixels.",
+  "Unable to optimize image. Please choose another image.": "Unable to optimize image. Please choose another image.",
+  "Failed to upload images": "Failed to upload images",
+  "Choose distinct image slots from 0 to 2.": "Choose distinct image slots from 0 to 2."
 }

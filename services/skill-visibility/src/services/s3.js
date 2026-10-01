@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -34,6 +35,7 @@ export async function uploadBufferToS3({ bucket, key, buffer, contentType }) {
     Key: key,
     Body: buffer,
     ContentType: contentType,
+    CacheControl: "private, max-age=900",
   });
 
   await s3.send(cmd);
@@ -42,4 +44,8 @@ export async function uploadBufferToS3({ bucket, key, buffer, contentType }) {
     bucket,
     key,
   };
+}
+
+export async function deleteStorageObject({ bucket, key }) {
+  await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }

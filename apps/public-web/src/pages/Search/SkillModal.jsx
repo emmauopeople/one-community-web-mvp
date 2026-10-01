@@ -146,7 +146,7 @@ function Gallery({ media, title, onEnlarge }) {
               className={`shrink-0 rounded-xl border-2 overflow-hidden ${index === i ? "border-blue-600" : "border-slate-200"}`}
             >
               <img
-                src={image.url}
+                src={image.thumbnailUrl || image.url}
                 alt=""
                 loading="lazy"
                 className="w-16 h-12 object-cover"

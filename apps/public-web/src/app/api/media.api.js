@@ -1,3 +1,4 @@
+import { getLanguage } from "../../i18n/store";
 import { api } from "./client";
 
 function getApiBaseUrl() {
@@ -42,6 +43,7 @@ async function uploadSingleImage({
       `${baseUrl}/media/skills/${skillId}/upload-direct`,
       {
         method: "POST",
+        headers: {"Accept-Language":getLanguage()},
         body: formData,
         credentials: "include",
         signal: controller.signal,

@@ -14,7 +14,7 @@ async function attachIndexImages(rows) {
   if (ids.length === 0) return rows;
 
   const media = await query(
-    `SELECT DISTINCT ON (skill_id) skill_id, s3_key
+    `SELECT DISTINCT ON (skill_id) skill_id, COALESCE(thumbnail_s3_key,s3_key) AS s3_key
      FROM skill_media
      WHERE skill_id = ANY($1::bigint[])
      ORDER BY skill_id, sort_order ASC`,

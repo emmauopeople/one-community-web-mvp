@@ -44,7 +44,7 @@ async function attachIndexImages(rows) {
   if (ids.length === 0) return rows;
 
   const m = await query(
-    `SELECT DISTINCT ON (skill_id) skill_id, s3_key
+    `SELECT DISTINCT ON (skill_id) skill_id, COALESCE(thumbnail_s3_key,s3_key) AS s3_key
      FROM skill_media
      WHERE skill_id = ANY($1::bigint[])
      ORDER BY skill_id, sort_order ASC`,
@@ -328,7 +328,7 @@ router.get("/skills/:id", async (req, res) => {
     const expiresIn = Number(process.env.S3_PRESIGN_EXPIRES_SECONDS || 300);
 
     const mediaRows = await query(
-      `SELECT s3_key, mime_type, size_bytes, sort_order
+      `SELECT s3_key, thumbnail_s3_key, mime_type, size_bytes, sort_order
        FROM skill_media
        WHERE skill_id=$1
        ORDER BY sort_order ASC`,
@@ -341,6 +341,7 @@ router.get("/skills/:id", async (req, res) => {
         try {
           const url = await presignGet({ bucket, key: m.s3_key, expiresIn });
           media.push({
+            thumbnailUrl: m.thumbnail_s3_key ? await presignGet({bucket,key:m.thumbnail_s3_key,expiresIn}) : url,
             sortOrder: m.sort_order,
             mimeType: m.mime_type,
             sizeBytes: m.size_bytes,
