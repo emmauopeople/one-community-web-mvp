@@ -2,7 +2,7 @@ import express from "express";
 import requireAdminAuth from "../middleware/requireAdminAuth.js";
 import pool from "../db/pool.js";
 const router = express.Router();
-const states = ["pending", "approved", "rejected"];
+const states = ["pending", "approved", "rejected", "inactive", "deleted"];
 router.use("/reviews", requireAdminAuth, async (req, res, next) => {
   try {
     const result = await pool.query(
@@ -34,14 +34,12 @@ router.get("/reviews", async (req, res) => {
     const counts = await pool.query(
       "SELECT status,count(*)::int AS count FROM provider_reviews GROUP BY status",
     );
-    res
-      .set("Cache-Control", "no-store")
-      .json({
-        reviews: data.rows.slice(0, 20),
-        hasMore: data.rows.length > 20,
-        page,
-        counts: Object.fromEntries(counts.rows.map((r) => [r.status, r.count])),
-      });
+    res.set("Cache-Control", "no-store").json({
+      reviews: data.rows.slice(0, 20),
+      hasMore: data.rows.length > 20,
+      page,
+      counts: Object.fromEntries(counts.rows.map((r) => [r.status, r.count])),
+    });
   } catch {
     res.status(500).json({ message: "Unable to load review queue." });
   }
@@ -58,18 +56,16 @@ router.patch("/reviews/:id", async (req, res) => {
     notes.length > 1000 ||
     (status === "approved" && verified !== true)
   )
-    return res
-      .status(400)
-      .json({
-        message:
-          "Choose a decision, add notes (5–1,000 characters), and confirm verification before approval.",
-      });
+    return res.status(400).json({
+      message:
+        "Choose a decision, add notes (5–1,000 characters), and confirm verification before approval.",
+    });
   try {
     // Version-guarded update and audit insertion are one PostgreSQL statement/transaction.
     const result = await pool.query(
       `WITH changed AS (
- UPDATE provider_reviews SET status=$2,verification_notes=$3,reviewed_by=$4,reviewed_at=now(),updated_at=now(),approved_at=CASE WHEN $2='approved' THEN now() ELSE NULL END,version=version+1
- WHERE id=$1 AND version=$5 AND status<>$2 AND EXISTS(SELECT 1 FROM admin_users WHERE id=$4 AND is_active=true AND role IN ('admin','root_admin')) RETURNING id,status,version
+ UPDATE provider_reviews SET status=$2,verification_notes=$3,reviewed_by=$4,reviewed_at=now(),updated_at=now(),approved_at=CASE WHEN $2='approved' THEN now() ELSE NULL END,deleted_at=CASE WHEN $2='deleted' THEN now() ELSE NULL END,deleted_by=CASE WHEN $2='deleted' THEN $4 ELSE NULL END,version=version+1
+ WHERE id=$1 AND version=$5 AND status<>$2 AND (status<>'deleted' OR $2='pending') AND EXISTS(SELECT 1 FROM admin_users WHERE id=$4 AND is_active=true AND role IN ('admin','root_admin')) RETURNING id,status,version
  ), logged AS (INSERT INTO audit_logs(actor_admin_id,action_type,target_type,target_id,details) SELECT $4,'review_moderation','provider_review',id::text,jsonb_build_object('status',status,'version',version,'notes',$3::text,'verification_confirmed',$6::boolean) FROM changed)
  SELECT * FROM changed`,
       [
@@ -82,12 +78,10 @@ router.patch("/reviews/:id", async (req, res) => {
       ],
     );
     if (!result.rowCount)
-      return res
-        .status(409)
-        .json({
-          message:
-            "Review changed or is unavailable. Refresh the queue before deciding.",
-        });
+      return res.status(409).json({
+        message:
+          "Review changed or is unavailable. Refresh the queue before deciding.",
+      });
     res.json({ review: result.rows[0] });
   } catch {
     res.status(500).json({ message: "Unable to save review decision." });

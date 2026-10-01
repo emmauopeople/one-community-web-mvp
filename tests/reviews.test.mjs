@@ -142,14 +142,12 @@ test("moderated reviews: privacy, authorization, lifecycle and atomic audit", as
       assert.equal((await request(app).get("/api/admin/reviews")).status, 401);
       assert.equal(
         (
-          await request(app)
-            .patch("/api/admin/reviews/1")
-            .send({
-              status: "approved",
-              version: 1,
-              notes: "checked",
-              verified: true,
-            })
+          await request(app).patch("/api/admin/reviews/1").send({
+            status: "approved",
+            version: 1,
+            notes: "checked",
+            verified: true,
+          })
         ).status,
         401,
       );
@@ -275,6 +273,57 @@ test("moderated reviews: privacy, authorization, lifecycle and atomic audit", as
         200,
       );
       assert.equal((await publicRead()).body.reviews.length, 0);
+    },
+  );
+  await t.test(
+    "inactive, soft-delete and restore retain content and never bypass approval",
+    async () => {
+      let version = 4;
+      const decide = async (status, verified = false) =>
+        admin().send({
+          status,
+          version,
+          verified,
+          notes: "Verified lifecycle test action",
+        });
+      assert.equal((await decide("approved", true)).status, 200);
+      version++;
+      assert.equal((await publicRead()).body.summary.count, 1);
+      assert.equal((await decide("inactive")).status, 200);
+      version++;
+      assert.equal((await publicRead()).body.summary.count, 0);
+      assert.equal((await decide("deleted")).status, 200);
+      version++;
+      const row = (await db.query("SELECT * FROM provider_reviews WHERE id=1"))
+        .rows[0];
+      assert.equal(row.body, payload.body);
+      assert(row.deleted_at);
+      assert.equal(Number(row.deleted_by), 1);
+      const queue = await request(app)
+        .get("/api/admin/reviews?status=deleted")
+        .set("x-test-admin", "1");
+      assert.equal(queue.body.reviews.length, 1);
+      assert.equal(queue.body.counts.deleted, 1);
+      assert.equal((await publicRead()).body.reviews.length, 0);
+      assert.equal((await decide("approved", true)).status, 409);
+      assert.equal((await decide("inactive")).status, 409);
+      assert.equal((await decide("pending")).status, 200);
+      version++;
+      const restored = (
+        await db.query("SELECT * FROM provider_reviews WHERE id=1")
+      ).rows[0];
+      assert.equal(restored.deleted_at, null);
+      assert.equal(restored.deleted_by, null);
+      assert.equal((await decide("approved")).status, 400);
+      assert.equal((await publicRead()).body.summary.count, 0);
+      assert.equal(
+        (
+          await db.query(
+            "SELECT count(*)::int n FROM audit_logs WHERE details->>'status'='deleted'",
+          )
+        ).rows[0].n,
+        1,
+      );
     },
   );
   await t.test(
