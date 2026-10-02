@@ -63,7 +63,7 @@ router.get("/skills/search", async (req, res) => {
       }));
     await attachIndexImages(rows);
     try {
-      await logEvent({
+      if (search.page === 1) await logEvent({
         req,
         eventType: "search",
         userId: req.session?.user?.id || null,

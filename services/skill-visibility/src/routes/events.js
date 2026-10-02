@@ -7,7 +7,6 @@ const ALLOWED = new Set([
   "search",
   "skill_view",
   "contact_click_whatsapp",
-  "contact_click_email",
   "media_presign",
   "media_confirm",
   "profile_update",

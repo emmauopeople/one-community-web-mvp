@@ -1,8 +1,20 @@
 import express from "express";
 import requireAdminAuth from "../middleware/requireAdminAuth.js";
 import pool from "../db/pool.js";
+import {loadAnalyticsReport, reportDays} from '../services/analyticsReport.js';
 
 const router = express.Router();
+router.get('/analytics/report', requireAdminAuth, async (req,res) => {
+  let days;
+  try { days=reportDays(req.query.days); }
+  catch { return res.status(400).json({message:'Invalid report days'}); }
+  try {
+    res.set('Cache-Control','no-store');
+    return res.json(await loadAnalyticsReport(pool,days));
+  } catch {
+    return res.status(500).json({message:'Failed to load business analytics'});
+  }
+});
 
 function getDays(value) {
   const days = Number(value || 7);

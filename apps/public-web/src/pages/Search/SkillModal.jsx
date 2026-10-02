@@ -459,10 +459,6 @@ function Inquiry({ skill }) {
         fromEmail: email.trim(),
         message: text,
       });
-      eventsApi.track("contact_click_email", {
-        skillId: skill.id,
-        channel: "email",
-      });
       if (live.current) {
         setNotice("Inquiry sent. The provider will reply to your email.");
         setMessage("");

@@ -256,6 +256,7 @@ test("real routes and PostgreSQL: consent, OTP, inheritance, discovery and withd
         )
       ).rows;
       assert.ok(events.every((e) => e.lat === null && e.lng === null));
+      assert.equal(events.length, 2, 'Loading page 2 must not count as another search');
       assert.equal(events[0].result_count, 12);
       assert.equal(events[0].search_mode, "nearby");
     },

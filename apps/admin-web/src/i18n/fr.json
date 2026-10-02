@@ -739,5 +739,17 @@
   "Unable to optimize image. Please choose another image.": "Impossible d’optimiser cette image. Choisissez une autre image.",
   "Failed to upload images": "Impossible d’envoyer les images",
   "Choose distinct image slots from 0 to 2.": "Choisissez des emplacements distincts de 0 à 2.",
-  "Preparing images...": "Préparation des images…"
+  "Preparing images...": "Préparation des images…",
+  "Print / Save PDF": "Imprimer / Enregistrer en PDF",
+  "Generated at": "Généré le",
+  "Metric": "Indicateur",
+  "Count": "Nombre",
+  "Activity summary": "Résumé de l’activité",
+  "Channel": "Canal",
+  "Date": "Date",
+  "Searches without results": "Recherches sans résultat",
+  "Views per 100 searches": "Vues pour 100 recherches",
+  "Contacts per 100 views": "Contacts pour 100 vues",
+  "Activity ratios are event counts, not unique visitors or confirmed bookings. They can exceed 100%.": "Ces ratios comptent les événements, pas les visiteurs uniques ni les réservations confirmées. Ils peuvent dépasser 100 %.",
+  "Reports include recorded events only. Today is partial; missed historical events cannot be recovered.": "Seuls les événements enregistrés sont inclus. La journée en cours est partielle ; les événements passés manquants ne peuvent pas être récupérés."
 }

@@ -2,6 +2,10 @@ import axios from "axios";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "/api/admin";
+export async function getAnalyticsReport(days=7, signal) {
+  const response=await axios.get(`${API_BASE_URL}/analytics/report`, {params:{days},withCredentials:true,signal});
+  return response.data;
+}
 
 export async function getEventSummary(days = 7) {
   const response = await axios.get(`${API_BASE_URL}/analytics/events-summary`, {

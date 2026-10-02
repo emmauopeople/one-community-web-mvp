@@ -1,14 +1,7 @@
 import { t, te, useLocale } from "../../i18n/index.js";
 import { useEffect, useMemo, useState } from "react";
-import {
-  getContactChannels,
-  getDailyActivity,
-  getEventSummary,
-  getTopCategories,
-  getTopCities,
-  getTopContactedSkills,
-  getTopViewedSkills,
-} from "../../api/analyticsApi";
+import {getAnalyticsReport} from '../../api/analyticsApi';
+import AnalyticsReport from './AnalyticsReport';
 import { getAdminLoginMonitoring } from "../../api/monitoringApi";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 const TABS = {
@@ -29,7 +22,7 @@ function StatCard({ label, value, subtext }) {
       <p className="text-sm text-gray-500">{t(label)}</p>{" "}
       <h3 className="mt-2 text-xl font-semibold text-gray-800">{value}</h3>{" "}
       {subtext ? (
-        <p className="mt-1 text-xs text-gray-500">{subtext}</p>
+        <p className="mt-1 text-xs text-gray-500">{t(subtext)}</p>
       ) : null}{" "}
     </div>
   );
@@ -186,27 +179,28 @@ function DailyActivityChart({ rows }) {
                       title={`Searches: ${searches}`}
                       className="w-3 rounded-t bg-blue-600"
                       style={{
-                        height: `${Math.max((searches / max) * 100, 4)}%`,
+                        height: `${(searches / max) * 100}%`,
                       }}
                     />{" "}
                     <div
                       title={`Skill Views: ${skillViews}`}
                       className="w-3 rounded-t bg-green-500"
                       style={{
-                        height: `${Math.max((skillViews / max) * 100, 4)}%`,
+                        height: `${(skillViews / max) * 100}%`,
                       }}
                     />{" "}
                     <div
                       title={`Contact Clicks: ${contactClicks}`}
                       className="w-3 rounded-t bg-amber-500"
                       style={{
-                        height: `${Math.max((contactClicks / max) * 100, 4)}%`,
+                        height: `${(contactClicks / max) * 100}%`,
                       }}
                     />{" "}
                   </div>{" "}
                   <div className="text-center text-xs text-gray-500">
                     {" "}
-                    {new Date(row.day).toLocaleDateString(undefined, {
+                    {new Date(row.day + "T12:00:00Z").toLocaleDateString(undefined, {
+                      timeZone: "Africa/Douala",
                       month: "short",
                       day: "numeric",
                     })}{" "}
@@ -244,7 +238,7 @@ function SkillTable({ title, rows, valueLabel, valueKey }) {
                 </th>{" "}
                 <th className="py-3 pr-4 font-semibold">{t("City")}</th>{" "}
                 <th className="py-3 pr-4 font-semibold">{t("Category")}</th>{" "}
-                <th className="py-3 pr-4 font-semibold">{valueLabel}</th>{" "}
+                <th className="py-3 pr-4 font-semibold">{t(valueLabel)}</th>{" "}
               </tr>{" "}
             </thead>{" "}
             <tbody>
@@ -278,6 +272,7 @@ export default function AnalyticsPage() {
   useLocale();
   const [activeTab, setActiveTab] = useState(TABS.BUSINESS);
   const [days, setDays] = useState(7);
+  const [report, setReport] = useState(null);
   const [minutes, setMinutes] = useState(15);
   const [businessLoading, setBusinessLoading] = useState(true);
   const [businessError, setBusinessError] = useState("");
@@ -300,43 +295,25 @@ export default function AnalyticsPage() {
     return toNumber(summary.contact_clicks);
   }, [summary]);
   useEffect(() => {
-    const loadBusinessAnalytics = async () => {
-      setBusinessLoading(true);
-      setBusinessError("");
-      try {
-        const [
-          summaryData,
-          citiesData,
-          categoriesData,
-          channelsData,
-          viewedData,
-          contactedData,
-          dailyData,
-        ] = await Promise.all([
-          getEventSummary(days),
-          getTopCities(days),
-          getTopCategories(days),
-          getContactChannels(days),
-          getTopViewedSkills(days),
-          getTopContactedSkills(days),
-          getDailyActivity(days),
-        ]);
-        setSummary(summaryData.summary || {});
-        setTopCities(citiesData.top_cities || []);
-        setTopCategories(categoriesData.top_categories || []);
-        setContactChannels(channelsData.contact_channels || []);
-        setTopViewedSkills(viewedData.top_viewed_skills || []);
-        setTopContactedSkills(contactedData.top_contacted_skills || []);
-        setDailyActivity(dailyData.daily_activity || []);
-      } catch (err) {
-        setBusinessError(
-          err.response?.data?.message || "Failed to load business analytics",
-        );
-      } finally {
-        setBusinessLoading(false);
-      }
-    };
-    loadBusinessAnalytics();
+    const controller = new AbortController();
+    let live = true;
+    setBusinessLoading(true);
+    setBusinessError('');
+    setReport(null);
+    getAnalyticsReport(days, controller.signal).then(data => {
+      if (!live) return;
+      setReport(data);
+      setSummary(data.summary);
+      setTopCities(data.top_cities);
+      setTopCategories(data.top_categories);
+      setContactChannels(data.contact_channels);
+      setTopViewedSkills(data.top_viewed_skills);
+      setTopContactedSkills(data.top_contacted_skills);
+      setDailyActivity(data.daily_activity);
+    }).catch(() => {
+      if (live) setBusinessError('Failed to load business analytics');
+    }).finally(() => {if (live) setBusinessLoading(false);});
+    return () => {live=false;controller.abort();};
   }, [days]);
   useEffect(() => {
     const loadLoginMonitoring = async () => {
@@ -362,6 +339,16 @@ export default function AnalyticsPage() {
   }, [minutes]);
   return (
     <DashboardLayout title={t("Analytics")}>
+      {activeTab === TABS.BUSINESS && <>
+        <button type="button" className="mb-4 rounded-xl bg-blue-700 px-4 py-2 text-white disabled:opacity-50"
+          disabled={businessLoading || !!businessError || report?.range.days !== days}
+          onClick={() => window.print()}>{t('Print / Save PDF')}</button>
+        {!businessLoading && !businessError && report?.range.days === days && <>
+          <p className="mb-3 text-sm text-gray-600">{report.range.start_date} — {report.range.end_date} · Africa/Douala (UTC+1)</p>
+          <AnalyticsReport report={report}/>
+        </>}
+      </>}
+
       {" "}
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {" "}
@@ -421,7 +408,7 @@ export default function AnalyticsPage() {
         ) : businessError ? (
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             {" "}
-            <p className="text-sm text-red-600">{businessError}</p>{" "}
+            <p className="text-sm text-red-600">{te(businessError)}</p>{" "}
           </div>
         ) : (
           <div className="space-y-5">
@@ -453,16 +440,18 @@ export default function AnalyticsPage() {
                 value={summary.email_clicks || 0}
               />{" "}
               <StatCard
-                label={t("Search → View")}
-                value={`${summary.search_to_view_rate || 0}%`}
+                label={t("Views per 100 searches")}
+                value={summary.search_to_view_rate || 0}
                 subtext="Skill views divided by searches"
               />{" "}
               <StatCard
-                label={t("View → Contact")}
-                value={`${summary.view_to_contact_rate || 0}%`}
+                label={t("Contacts per 100 views")}
+                value={summary.view_to_contact_rate || 0}
                 subtext="Contact clicks divided by skill views"
               />{" "}
             </div>{" "}
+            <StatCard label={t('Searches without results')} value={summary.no_result_searches || 0}/>
+            <p className="text-sm text-gray-600">{t('Activity ratios are event counts, not unique visitors or confirmed bookings. They can exceed 100%.')}</p>
             <DailyActivityChart rows={dailyActivity} />{" "}
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               {" "}

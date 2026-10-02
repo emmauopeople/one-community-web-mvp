@@ -1,6 +1,7 @@
 import express from "express";
 import { query } from "../../db.js";
 import nodemailer from "nodemailer";
+import { logEvent } from '../services/eventService.js';
 
 const router = express.Router();
 
@@ -59,6 +60,9 @@ router.post("/contact/email", async (req, res) => {
         `Message:\n${message}\n`,
     });
 
+    try {
+      await logEvent({req,eventType:'contact_click_email',skillId,meta:{channel:'email'}});
+    } catch { console.error('Inquiry analytics write failed'); }
     return res.json({ ok: true });
   } catch (e) {
     console.error("CONTACT EMAIL ERROR:", e);
