@@ -24,5 +24,13 @@ jobs:
       - run: docker compose up --build -d
       - run: docker compose run --build --rm seed
       - run: npm run test:smoke
+      - name: Verify tunnel gateway without connecting to Cloudflare
+        env:
+          CLOUDFLARED_IMAGE: cloudflare/cloudflared:latest
+        run: |
+          printf 'ci-placeholder-not-a-tunnel-token' > .env.tunnel-token
+          docker compose -f compose.yaml -f compose.tunnel.yaml config --quiet
+          docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d tunnel-gateway
+          node scripts/tunnel-gateway-check.mjs
       - if: always()
-        run: docker compose down
+        run: docker compose down --remove-orphans

@@ -19,6 +19,8 @@ import metricsRoutes from "./routes/metrics.js";
 import supportRoutes from "./routes/support.js";
 
 const app = express();
+// The optional tunnel gateway overwrites forwarding headers and is the only public API hop.
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use("/metrics", metricsRoutes);
