@@ -8,7 +8,7 @@ const categories = {
   application_comment: "Application comment",
   provider_problem: "Provider problem",
 };
-const seenKey = "oc-usefulness-v1";
+const seenKey = "oc-usefulness-session-v2";
 function locate() {
   return new Promise((resolve) => {
     if (!navigator.geolocation)
@@ -33,7 +33,6 @@ export default function FeedbackFooter({ enabled = true }) {
     seen = useRef(false),
     id = useRef();
   const [mode, setMode] = useState(""),
-    [prompt, setPrompt] = useState(false),
     [useful, setUseful] = useState(null),
     [category, setCategory] = useState("app_problem"),
     [subject, setSubject] = useState(""),
@@ -45,28 +44,20 @@ export default function FeedbackFooter({ enabled = true }) {
     [message, setMessage] = useState("");
   const dismiss = () => {
     seen.current = true;
-    setPrompt(false);
     try {
-      localStorage.setItem(seenKey, "seen");
+      sessionStorage.setItem(seenKey, "seen");
     } catch {}
   };
   useEffect(() => {
     try {
-      seen.current = localStorage.getItem(seenKey) === "seen";
+      seen.current = sessionStorage.getItem(seenKey) === "seen";
     } catch {}
     const onScroll = () => {
       if (!enabled || mode || seen.current || window.scrollY < 24) return;
       if (footer.current?.getBoundingClientRect().top < window.innerHeight) {
-        setPrompt(true);
-        dismissSeen();
+        open("survey");
       }
     };
-    function dismissSeen() {
-      seen.current = true;
-      try {
-        localStorage.setItem(seenKey, "seen");
-      } catch {}
-    }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [enabled, mode]);
@@ -74,7 +65,7 @@ export default function FeedbackFooter({ enabled = true }) {
     if (mode && !dialog.current.open) dialog.current.showModal();
   }, [mode]);
   const open = (value, answer = null) => {
-    dismiss();
+    if (value === "survey") dismiss();
     setUseful(answer);
     setDescription("");
     setSubject("");
@@ -148,32 +139,6 @@ export default function FeedbackFooter({ enabled = true }) {
           {t(message)}
         </p>
       )}
-      {enabled && prompt && !mode && (
-        <aside
-          aria-label={t("Your opinion")}
-          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:w-96 z-40 bg-white border rounded-2xl shadow-lg p-4"
-        >
-          <button
-            className="float-right text-blue-700 px-2"
-            aria-label={t("Close")}
-            onClick={dismiss}
-          >
-            ×
-          </button>
-          <p className="text-sm font-medium pr-6">{t(question)}</p>
-          <div className="flex gap-4 mt-3">
-            {[true, false].map((v) => (
-              <button
-                className="text-blue-700 border rounded-lg px-4 py-2"
-                key={String(v)}
-                onClick={() => open("survey", v)}
-              >
-                {t(v ? "Yes" : "No")}
-              </button>
-            ))}
-          </div>
-        </aside>
-      )}
       <dialog
         ref={dialog}
         aria-labelledby="feedback-title"
@@ -237,6 +202,7 @@ export default function FeedbackFooter({ enabled = true }) {
                 </label>
               </>
             )}
+            {mode === "report" && (
             <label className="block">
               {t(mode === "report" ? "Description" : "Comment")}
               <textarea
@@ -249,8 +215,9 @@ export default function FeedbackFooter({ enabled = true }) {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </label>
+            )}
             <fieldset>
-              <legend>{t(question)}</legend>
+              <legend className={mode === "survey" ? "sr-only" : undefined}>{t(question)}</legend>
               <div className="flex gap-5 mt-2">
                 {[true, false].map((v) => (
                   <label key={String(v)}>
@@ -266,6 +233,20 @@ export default function FeedbackFooter({ enabled = true }) {
                 ))}
               </div>
             </fieldset>
+            {mode === "survey" && useful !== null && (
+            <label className="block">
+              {t(mode === "report" ? "Description" : "Comment")}
+              <textarea
+                className={field}
+                rows={4}
+                required={mode === "report"}
+                minLength={mode === "report" ? 10 : undefined}
+                maxLength={3000}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </label>
+            )}
             {mode === "report" && (
               <label className="block">
                 <input
