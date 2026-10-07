@@ -1,3 +1,4 @@
+import feedbackRoutes from "./routes/feedback.js";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -70,7 +71,7 @@ app.use(profileRoutes);
 
 app.get("/api/hello", (req, res) =>
   res.json({
-    message: "Hello from 1community backend up 👋",
+    message: "Hello from 1community backend up ðŸ‘‹",
     env: process.env.NODE_ENV || "dev",
     time: new Date().toISOString(),
   }),
@@ -78,4 +79,5 @@ app.get("/api/hello", (req, res) =>
 
 app.use(reviewRoutes);
 
+app.use(feedbackRoutes);
 export default app;

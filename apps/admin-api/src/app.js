@@ -1,3 +1,4 @@
+import feedbackRoutes from "./routes/feedbackRoutes.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -65,4 +66,5 @@ app.use("/api/admin", analyticsRoutes);
 
 app.use("/api/admin",reviewRoutes);
 
+app.use("/api/admin",feedbackRoutes);
 export default app;

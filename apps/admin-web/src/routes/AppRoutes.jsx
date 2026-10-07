@@ -1,3 +1,4 @@
+import FeedbackPage from "../pages/feedback/FeedbackPage";
 import { Routes, Route } from "react-router-dom";
 import ReviewsPage from "../pages/reviews/ReviewsPage";
 import LoginPage from "../pages/auth/LoginPage";
@@ -15,6 +16,7 @@ import ProtectedRoute from "./ProtectedRoute";
 export default function AppRoutes() {
   return (
     <Routes>
+<Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
       <Route
         path="/reviews"
         element={
