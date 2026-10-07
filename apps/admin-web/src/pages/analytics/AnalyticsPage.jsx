@@ -1,0 +1,600 @@
+import { t, te, useLocale } from "../../i18n/index.js";
+import { useEffect, useMemo, useState } from "react";
+import {getAnalyticsReport} from '../../api/analyticsApi';
+import AnalyticsReport from './AnalyticsReport';
+import { getAdminLoginMonitoring } from "../../api/monitoringApi";
+import DashboardLayout from "../../components/layout/DashboardLayout";
+const TABS = {
+  BUSINESS: "business",
+  LOGINS: "logins",
+};
+function toNumber(value) {
+  return Number(value || 0);
+}
+function getMaxValue(items, key) {
+  return Math.max(...items.map((item) => toNumber(item[key])), 1);
+}
+function StatCard({ label, value, subtext }) {
+  useLocale();
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      {" "}
+      <p className="text-sm text-gray-500">{t(label)}</p>{" "}
+      <h3 className="mt-2 text-xl font-semibold text-gray-800">{value}</h3>{" "}
+      {subtext ? (
+        <p className="mt-1 text-xs text-gray-500">{t(subtext)}</p>
+      ) : null}{" "}
+    </div>
+  );
+}
+function BarList({ title, items, labelKey, valueKey, emptyText }) {
+  useLocale();
+  const max = getMaxValue(items, valueKey);
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      {" "}
+      <h3 className="mb-4 text-lg font-semibold text-gray-800">
+        {t(title)}
+      </h3>{" "}
+      {items.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          {" "}
+          {emptyText || t("No data available.")}{" "}
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {" "}
+          {items.map((item) => {
+            const value = toNumber(item[valueKey]);
+            const width = `${Math.max((value / max) * 100, 4)}%`;
+            return (
+              <div key={`${item[labelKey]}-${value}`}>
+                {" "}
+                <div className="mb-1 flex items-center justify-between text-sm">
+                  {" "}
+                  <span className="max-w-[70%] truncate font-medium text-gray-700">
+                    {" "}
+                    {item[labelKey] || "Unknown"}{" "}
+                  </span>{" "}
+                  <span className="text-gray-500">{value}</span>{" "}
+                </div>{" "}
+                <div className="h-3 overflow-hidden rounded-full bg-gray-100">
+                  {" "}
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-blue-600 to-green-500"
+                    style={{
+                      width,
+                    }}
+                  />{" "}
+                </div>{" "}
+              </div>
+            );
+          })}{" "}
+        </div>
+      )}{" "}
+    </div>
+  );
+}
+function ContactChannelChart({ channels }) {
+  useLocale();
+  const total = channels.reduce((sum, item) => sum + toNumber(item.clicks), 0);
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      {" "}
+      <h3 className="mb-4 text-lg font-semibold text-gray-800">
+        {" "}
+        {t("Contact Channels")}{" "}
+      </h3>{" "}
+      {total === 0 ? (
+        <p className="text-sm text-gray-500">
+          {t("No contact clicks available.")}
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {" "}
+          {channels.map((item) => {
+            const clicks = toNumber(item.clicks);
+            const percent = total > 0 ? Math.round((clicks / total) * 100) : 0;
+            return (
+              <div key={item.channel}>
+                {" "}
+                <div className="mb-1 flex items-center justify-between text-sm">
+                  {" "}
+                  <span className="font-medium text-gray-700">
+                    {item.channel}
+                  </span>{" "}
+                  <span className="text-gray-500">
+                    {" "}
+                    {clicks}
+                    {" " + t("clicks \u2022") + " "}
+                    {percent}%{" "}
+                  </span>{" "}
+                </div>{" "}
+                <div className="h-4 overflow-hidden rounded-full bg-gray-100">
+                  {" "}
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-blue-600 to-green-500"
+                    style={{
+                      width: `${Math.max(percent, 4)}%`,
+                    }}
+                  />{" "}
+                </div>{" "}
+              </div>
+            );
+          })}{" "}
+        </div>
+      )}{" "}
+    </div>
+  );
+}
+function DailyActivityChart({ rows }) {
+  useLocale();
+  const max = Math.max(
+    ...rows.map((row) =>
+      Math.max(
+        toNumber(row.searches),
+        toNumber(row.skill_views),
+        toNumber(row.contact_clicks),
+      ),
+    ),
+    1,
+  );
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      {" "}
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {" "}
+        <h3 className="text-lg font-semibold text-gray-800">
+          {t("Daily Activity")}
+        </h3>{" "}
+        <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+          {" "}
+          <span>{t("Blue: Searches")}</span>{" "}
+          <span>{t("Green: Skill Views")}</span>{" "}
+          <span>{t("Amber: Contact Clicks")}</span>{" "}
+        </div>{" "}
+      </div>{" "}
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          {t("No daily activity available.")}
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          {" "}
+          <div className="flex min-w-[640px] items-end gap-4 border-b border-gray-200 pb-4">
+            {" "}
+            {rows.map((row) => {
+              const searches = toNumber(row.searches);
+              const skillViews = toNumber(row.skill_views);
+              const contactClicks = toNumber(row.contact_clicks);
+              return (
+                <div
+                  key={row.day}
+                  className="flex flex-1 flex-col items-center gap-2"
+                >
+                  {" "}
+                  <div className="flex h-40 items-end gap-1">
+                    {" "}
+                    <div
+                      title={`Searches: ${searches}`}
+                      className="w-3 rounded-t bg-blue-600"
+                      style={{
+                        height: `${(searches / max) * 100}%`,
+                      }}
+                    />{" "}
+                    <div
+                      title={`Skill Views: ${skillViews}`}
+                      className="w-3 rounded-t bg-green-500"
+                      style={{
+                        height: `${(skillViews / max) * 100}%`,
+                      }}
+                    />{" "}
+                    <div
+                      title={`Contact Clicks: ${contactClicks}`}
+                      className="w-3 rounded-t bg-amber-500"
+                      style={{
+                        height: `${(contactClicks / max) * 100}%`,
+                      }}
+                    />{" "}
+                  </div>{" "}
+                  <div className="text-center text-xs text-gray-500">
+                    {" "}
+                    {new Date(row.day + "T12:00:00Z").toLocaleDateString(undefined, {
+                      timeZone: "Africa/Douala",
+                      month: "short",
+                      day: "numeric",
+                    })}{" "}
+                  </div>{" "}
+                </div>
+              );
+            })}{" "}
+          </div>{" "}
+        </div>
+      )}{" "}
+    </div>
+  );
+}
+function SkillTable({ title, rows, valueLabel, valueKey }) {
+  useLocale();
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      {" "}
+      <h3 className="mb-4 text-lg font-semibold text-gray-800">
+        {t(title)}
+      </h3>{" "}
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-500">{t("No skill data available.")}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          {" "}
+          <table className="min-w-full text-sm">
+            {" "}
+            <thead className="bg-blue-700 text-white">
+              {" "}
+              <tr className="text-left">
+                {" "}
+                <th className="py-3 pr-4 pl-3 font-semibold">
+                  {t("Skill")}
+                </th>{" "}
+                <th className="py-3 pr-4 font-semibold">{t("City")}</th>{" "}
+                <th className="py-3 pr-4 font-semibold">{t("Category")}</th>{" "}
+                <th className="py-3 pr-4 font-semibold">{t(valueLabel)}</th>{" "}
+              </tr>{" "}
+            </thead>{" "}
+            <tbody>
+              {" "}
+              {rows.map((row) => (
+                <tr
+                  key={`${row.skill_id}-${row.title}-${row[valueKey]}`}
+                  className="border-b last:border-b-0"
+                >
+                  {" "}
+                  <td className="py-3 pr-4 pl-3 font-medium text-gray-800">
+                    {" "}
+                    {row.title}{" "}
+                  </td>{" "}
+                  <td className="py-3 pr-4 text-gray-600">{row.city}</td>{" "}
+                  <td className="py-3 pr-4 text-gray-600">{row.category}</td>{" "}
+                  <td className="py-3 pr-4 font-semibold text-gray-800">
+                    {" "}
+                    {row[valueKey]}{" "}
+                  </td>{" "}
+                </tr>
+              ))}{" "}
+            </tbody>{" "}
+          </table>{" "}
+        </div>
+      )}{" "}
+    </div>
+  );
+}
+export default function AnalyticsPage() {
+  useLocale();
+  const [activeTab, setActiveTab] = useState(TABS.BUSINESS);
+  const [days, setDays] = useState(7);
+  const [report, setReport] = useState(null);
+  const [minutes, setMinutes] = useState(15);
+  const [businessLoading, setBusinessLoading] = useState(true);
+  const [businessError, setBusinessError] = useState("");
+  const [summary, setSummary] = useState({});
+  const [topCities, setTopCities] = useState([]);
+  const [topCategories, setTopCategories] = useState([]);
+  const [contactChannels, setContactChannels] = useState([]);
+  const [topViewedSkills, setTopViewedSkills] = useState([]);
+  const [topContactedSkills, setTopContactedSkills] = useState([]);
+  const [dailyActivity, setDailyActivity] = useState([]);
+  const [loginSummary, setLoginSummary] = useState({
+    success_count: 0,
+    failed_count: 0,
+    total_count: 0,
+  });
+  const [recentLogs, setRecentLogs] = useState([]);
+  const [loginLoading, setLoginLoading] = useState(true);
+  const [loginError, setLoginError] = useState("");
+  const totalContacts = useMemo(() => {
+    return toNumber(summary.contact_clicks);
+  }, [summary]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let live = true;
+    setBusinessLoading(true);
+    setBusinessError('');
+    setReport(null);
+    getAnalyticsReport(days, controller.signal).then(data => {
+      if (!live) return;
+      setReport(data);
+      setSummary(data.summary);
+      setTopCities(data.top_cities);
+      setTopCategories(data.top_categories);
+      setContactChannels(data.contact_channels);
+      setTopViewedSkills(data.top_viewed_skills);
+      setTopContactedSkills(data.top_contacted_skills);
+      setDailyActivity(data.daily_activity);
+    }).catch(() => {
+      if (live) setBusinessError('Failed to load business analytics');
+    }).finally(() => {if (live) setBusinessLoading(false);});
+    return () => {live=false;controller.abort();};
+  }, [days]);
+  useEffect(() => {
+    const loadLoginMonitoring = async () => {
+      setLoginLoading(true);
+      setLoginError("");
+      try {
+        const data = await getAdminLoginMonitoring(minutes);
+        setLoginSummary({
+          success_count: Number(data.summary?.success_count || 0),
+          failed_count: Number(data.summary?.failed_count || 0),
+          total_count: Number(data.summary?.total_count || 0),
+        });
+        setRecentLogs(data.recent_logs || []);
+      } catch (err) {
+        setLoginError(
+          err.response?.data?.message || "Failed to load monitoring data",
+        );
+      } finally {
+        setLoginLoading(false);
+      }
+    };
+    loadLoginMonitoring();
+  }, [minutes]);
+  return (
+    <DashboardLayout title={t("Analytics")}>
+      {activeTab === TABS.BUSINESS && <>
+        <button type="button" className="mb-4 rounded-xl bg-blue-700 px-4 py-2 text-white disabled:opacity-50"
+          disabled={businessLoading || !!businessError || report?.range.days !== days}
+          onClick={() => window.print()}>{t('Print / Save PDF')}</button>
+        {!businessLoading && !businessError && report?.range.days === days && <>
+          <p className="mb-3 text-sm text-gray-600">{report.range.start_date} — {report.range.end_date} · Africa/Douala (UTC+1)</p>
+          <AnalyticsReport report={report}/>
+        </>}
+      </>}
+
+      {" "}
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        {" "}
+        <div className="flex flex-wrap gap-2">
+          {" "}
+          <button
+            type="button"
+            onClick={() => setActiveTab(TABS.BUSINESS)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === TABS.BUSINESS ? "bg-gradient-to-r from-blue-600 to-green-500 text-white" : "bg-white text-gray-700 shadow-sm"}`}
+          >
+            {" "}
+            {t("Business Analytics")}{" "}
+          </button>{" "}
+          <button
+            type="button"
+            onClick={() => setActiveTab(TABS.LOGINS)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === TABS.LOGINS ? "bg-gradient-to-r from-blue-600 to-green-500 text-white" : "bg-white text-gray-700 shadow-sm"}`}
+          >
+            {" "}
+            {t("Login Monitoring")}{" "}
+          </button>{" "}
+        </div>{" "}
+        {activeTab === TABS.BUSINESS ? (
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="rounded-xl border border-gray-300 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {" "}
+            <option value={7}>{t("Last 7 days")}</option>{" "}
+            <option value={14}>{t("Last 14 days")}</option>{" "}
+            <option value={30}>{t("Last 30 days")}</option>{" "}
+            <option value={90}>{t("Last 90 days")}</option>{" "}
+          </select>
+        ) : (
+          <select
+            value={minutes}
+            onChange={(e) => setMinutes(Number(e.target.value))}
+            className="rounded-xl border border-gray-300 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {" "}
+            <option value={15}>{t("Last 15 minutes")}</option>{" "}
+            <option value={60}>{t("Last 60 minutes")}</option>{" "}
+            <option value={360}>{t("Last 6 hours")}</option>{" "}
+            <option value={1440}>{t("Last 24 hours")}</option>{" "}
+          </select>
+        )}{" "}
+      </div>{" "}
+      {activeTab === TABS.BUSINESS ? (
+        businessLoading ? (
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            {" "}
+            <p className="text-sm text-gray-500">
+              {t("Loading business analytics...")}
+            </p>{" "}
+          </div>
+        ) : businessError ? (
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            {" "}
+            <p className="text-sm text-red-600">{te(businessError)}</p>{" "}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {" "}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              {" "}
+              <StatCard
+                label={t("Searches")}
+                value={summary.searches || 0}
+              />{" "}
+              <StatCard
+                label={t("Skill Views")}
+                value={summary.skill_views || 0}
+              />{" "}
+              <StatCard label={t("Contact Clicks")} value={totalContacts} />{" "}
+              <StatCard
+                label={t("Total Events")}
+                value={summary.total_events || 0}
+              />{" "}
+            </div>{" "}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              {" "}
+              <StatCard
+                label={t("WhatsApp Clicks")}
+                value={summary.whatsapp_clicks || 0}
+              />{" "}
+              <StatCard
+                label={t("Email Clicks")}
+                value={summary.email_clicks || 0}
+              />{" "}
+              <StatCard
+                label={t("Views per 100 searches")}
+                value={summary.search_to_view_rate || 0}
+                subtext="Skill views divided by searches"
+              />{" "}
+              <StatCard
+                label={t("Contacts per 100 views")}
+                value={summary.view_to_contact_rate || 0}
+                subtext="Contact clicks divided by skill views"
+              />{" "}
+            </div>{" "}
+            <StatCard label={t('Searches without results')} value={summary.no_result_searches || 0}/>
+            <p className="text-sm text-gray-600">{t('Activity ratios are event counts, not unique visitors or confirmed bookings. They can exceed 100%.')}</p>
+            <DailyActivityChart rows={dailyActivity} />{" "}
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              {" "}
+              <BarList
+                title={t("Top Searched Cities")}
+                items={topCities}
+                labelKey="city"
+                valueKey="searches"
+              />{" "}
+              <BarList
+                title={t("Top Searched Categories")}
+                items={topCategories}
+                labelKey="category"
+                valueKey="searches"
+              />{" "}
+              <ContactChannelChart channels={contactChannels} />{" "}
+            </div>{" "}
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {" "}
+              <SkillTable
+                title={t("Top Viewed Skills")}
+                rows={topViewedSkills}
+                valueLabel="Views"
+                valueKey="views"
+              />{" "}
+              <SkillTable
+                title={t("Top Contacted Skills")}
+                rows={topContactedSkills}
+                valueLabel="Contacts"
+                valueKey="contacts"
+              />{" "}
+            </div>{" "}
+          </div>
+        )
+      ) : loginLoading ? (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          {" "}
+          <p className="text-sm text-gray-500">
+            {t("Loading login monitoring...")}
+          </p>{" "}
+        </div>
+      ) : loginError ? (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          {" "}
+          <p className="text-sm text-red-600">{loginError}</p>{" "}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {" "}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {" "}
+            <StatCard
+              label={t("Successful Admin Logins")}
+              value={loginSummary.success_count}
+            />{" "}
+            <StatCard
+              label={t("Failed Admin Logins")}
+              value={loginSummary.failed_count}
+            />{" "}
+            <StatCard
+              label={t("Total Login Attempts")}
+              value={loginSummary.total_count}
+            />{" "}
+          </div>{" "}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            {" "}
+            <h3 className="mb-4 text-lg font-semibold text-gray-800">
+              {" "}
+              {t("Recent Admin Login Activity")}{" "}
+            </h3>{" "}
+            {recentLogs.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                {t("No recent login activity.")}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                {" "}
+                <div className="max-h-[420px] overflow-y-auto rounded-xl border">
+                  {" "}
+                  <table className="min-w-full text-sm">
+                    {" "}
+                    <thead className="sticky top-0 z-10 bg-blue-700 text-white">
+                      {" "}
+                      <tr className="text-left">
+                        {" "}
+                        <th className="py-3 pr-4 pl-3 font-semibold">
+                          {t("Email")}
+                        </th>{" "}
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Status")}
+                        </th>{" "}
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Reason")}
+                        </th>{" "}
+                        <th className="py-3 pr-4 font-semibold">IP</th>{" "}
+                        <th className="py-3 pr-4 font-semibold">
+                          {t("Time")}
+                        </th>{" "}
+                      </tr>{" "}
+                    </thead>{" "}
+                    <tbody>
+                      {" "}
+                      {recentLogs.map((log) => (
+                        <tr
+                          key={log.id}
+                          className="border-b last:border-b-0 hover:bg-gray-50"
+                        >
+                          {" "}
+                          <td className="py-4 pr-4 pl-3 text-gray-800">
+                            {" "}
+                            {log.email_attempted}{" "}
+                          </td>{" "}
+                          <td className="py-4 pr-4">
+                            {" "}
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${log.status === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                            >
+                              {" "}
+                              {log.status}{" "}
+                            </span>{" "}
+                          </td>{" "}
+                          <td className="py-4 pr-4 text-gray-600">
+                            {" "}
+                            {log.failure_reason || "-"}{" "}
+                          </td>{" "}
+                          <td className="py-4 pr-4 text-gray-600">
+                            {" "}
+                            {log.ip_address || "-"}{" "}
+                          </td>{" "}
+                          <td className="py-4 pr-4 text-gray-600">
+                            {" "}
+                            {new Date(log.created_at).toLocaleString()}{" "}
+                          </td>{" "}
+                        </tr>
+                      ))}{" "}
+                    </tbody>{" "}
+                  </table>{" "}
+                </div>{" "}
+              </div>
+            )}{" "}
+          </div>{" "}
+        </div>
+      )}{" "}
+    </DashboardLayout>
+  );
+}
