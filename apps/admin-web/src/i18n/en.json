@@ -798,5 +798,8 @@
   "Unable to load feedback.": "Unable to load feedback.",
   "No feedback yet.": "No feedback yet.",
   "Previous": "Previous",
-  "Next": "Next"
+  "Next": "Next",
+  "Opinion": "Opinion",
+  "Feedback details": "Feedback details",
+  "Select feedback to view details.": "Select feedback to view details."
 }

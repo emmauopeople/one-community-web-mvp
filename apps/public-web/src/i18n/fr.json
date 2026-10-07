@@ -798,5 +798,8 @@
   "Unable to load feedback.": "Impossible de charger les avis.",
   "No feedback yet.": "Aucun avis pour le moment.",
   "Previous": "Précédent",
-  "Next": "Suivant"
+  "Next": "Suivant",
+  "Opinion": "Avis",
+  "Feedback details": "Détails de l’avis",
+  "Select feedback to view details.": "Sélectionnez un avis pour afficher ses détails."
 }

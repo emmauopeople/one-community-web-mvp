@@ -67,7 +67,7 @@ function Item({ item, onChange }) {
     }
   }
   return (
-    <article className="bg-white border rounded-xl p-4 space-y-3 text-sm">
+    <article className="space-y-4 text-sm">
       <h2 className="font-medium text-base break-words">
         {item.subject || t(labels[item.kind])}
       </h2>
@@ -170,22 +170,37 @@ export default function FeedbackPage() {
   useLocale();
   const [kind, setKind] = useState("all"),
     [page, setPage] = useState(1),
+    [selectedId, setSelectedId] = useState(null),
     [data, setData] = useState({ items: [], summary: [] }),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
+  const detailsHeading = useRef(null);
+  const requestSequence = useRef(0);
+  const selected = data.items.find((item) => item.id === selectedId);
+  useEffect(() => {
+    if (selectedId !== null) detailsHeading.current?.focus();
+  }, [selectedId]);
   async function load() {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     try {
-      setData((await api.get("/feedback", { params: { kind, page } })).data);
+      const result = (await api.get("/feedback", { params: { kind, page } }))
+        .data;
+      if (sequence !== requestSequence.current) return;
+      setData(result);
       setError("");
     } catch {
-      setError("Unable to load feedback.");
+      if (sequence === requestSequence.current)
+        setError("Unable to load feedback.");
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
   }
   useEffect(() => {
     load();
+    return () => {
+      requestSequence.current += 1;
+    };
   }, [kind, page]);
   const yes = data.summary
       .filter((x) => x.kind === "survey" && x.useful === true)
@@ -194,7 +209,7 @@ export default function FeedbackPage() {
       .filter((x) => x.kind === "survey" && x.useful === false)
       .reduce((n, x) => n + x.count, 0);
   return (
-    <DashboardLayout title="Community feedback">
+    <DashboardLayout title={t("Community feedback")}>
       <div className="space-y-4">
         <p className="text-sm">
           {t("Cameroon usefulness survey")}: {t("Yes")} {yes} · {t("No")} {no}
@@ -204,49 +219,142 @@ export default function FeedbackPage() {
             "Voluntary responses, not unique people or a representative sample.",
           )}
         </p>
-        <label>
-          {t("Type")}{" "}
-          <select
-            className="border rounded p-2"
-            value={kind}
-            onChange={(e) => {
-              setKind(e.target.value);
-              setPage(1);
-            }}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+          <section
+            aria-label={t("Community feedback")}
+            className="bg-white rounded-2xl shadow-sm p-5 space-y-4 min-w-0"
           >
-            {["all", "report", "survey"].map((k) => (
-              <option key={k} value={k}>
-                {t(k === "all" ? "All" : labels[k])}
-              </option>
-            ))}
-          </select>
-        </label>
-        {error && (
-          <p role="alert">
-            {t(error)} <button onClick={load}>{t("Retry")}</button>
-          </p>
-        )}
-        {loading && <p>{t("Loading…")}</p>}
-        {!loading && !error && !data.items.length && (
-          <p>{t("No feedback yet.")}</p>
-        )}
-        {data.items.map((item) => (
-          <Item key={item.id} item={item} onChange={load} />
-        ))}
-        <div className="flex gap-4">
-          <button
-            disabled={page === 1 || loading}
-            onClick={() => setPage(page - 1)}
+            <label>
+              {t("Type")}{" "}
+              <select
+                className="border rounded p-2"
+                value={kind}
+                onChange={(e) => {
+                  setSelectedId(null);
+                  setKind(e.target.value);
+                  setPage(1);
+                }}
+              >
+                {["all", "report", "survey"].map((k) => (
+                  <option key={k} value={k}>
+                    {t(k === "all" ? "All" : labels[k])}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {error && (
+              <p role="alert">
+                {t(error)} <button onClick={load}>{t("Retry")}</button>
+              </p>
+            )}
+            {loading && <p>{t("Loading…")}</p>}
+            {!loading && !error && !data.items.length && (
+              <p>{t("No feedback yet.")}</p>
+            )}
+            {!error && data.items.length > 0 && (
+              <div
+                className="overflow-auto max-h-[65vh] rounded-xl border"
+                aria-busy={loading}
+              >
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-blue-700 text-white text-left">
+                    <tr>
+                      {["Opinion", "Date", "Status"].map((label) => (
+                        <th key={label} scope="col" className="p-3 font-medium">
+                          {t(label)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.items.map((item) => (
+                      <tr
+                        key={item.id}
+                        onClick={() => !loading && setSelectedId(item.id)}
+                        className={`border-b last:border-0 cursor-pointer ${selectedId === item.id ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                      >
+                        <td className="p-3 break-words max-w-64">
+                          <button
+                            type="button"
+                            disabled={loading}
+                            aria-pressed={selectedId === item.id}
+                            onClick={() => setSelectedId(item.id)}
+                            className="text-left text-blue-700 font-medium rounded focus-visible:outline-2 focus-visible:outline-blue-600"
+                          >
+                            {item.subject || t(labels[item.kind])}
+                          </button>
+                          {item.useful !== null && (
+                            <p className="mt-1 text-xs text-gray-600">
+                              {t("Useful in Cameroon")}:{" "}
+                              {t(item.useful ? "Yes" : "No")}
+                            </p>
+                          )}
+                          {item.description && (
+                            <p className="mt-1 text-gray-600 line-clamp-2">
+                              {item.description}
+                            </p>
+                          )}
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-gray-600">
+                          <time dateTime={item.created_at}>
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </time>
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${item.status === "resolved" ? "bg-green-100 text-green-700" : item.status === "in_progress" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}
+                          >
+                            {t(labels[item.status])}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="flex gap-4">
+              <button
+                disabled={page === 1 || loading}
+                onClick={() => {
+                  setSelectedId(null);
+                  setPage(page - 1);
+                }}
+              >
+                {t("Previous")}
+              </button>
+              <span>{page}</span>
+              <button
+                disabled={!data.hasMore || loading}
+                onClick={() => {
+                  setSelectedId(null);
+                  setPage(page + 1);
+                }}
+              >
+                {t("Next")}
+              </button>
+            </div>
+          </section>
+          <section
+            aria-labelledby="feedback-details-title"
+            className="bg-white rounded-2xl shadow-sm p-5 min-w-0 xl:sticky xl:top-4 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto"
           >
-            {t("Previous")}
-          </button>
-          <span>{page}</span>
-          <button
-            disabled={!data.hasMore || loading}
-            onClick={() => setPage(page + 1)}
-          >
-            {t("Next")}
-          </button>
+            <h2
+              id="feedback-details-title"
+              ref={detailsHeading}
+              tabIndex={-1}
+              className="text-base font-medium text-gray-800 mb-4 outline-none"
+            >
+              {t("Feedback details")}
+            </h2>
+            {selected ? (
+              <Item key={selected.id} item={selected} onChange={load} />
+            ) : (
+              <p className="text-sm text-gray-500">
+                {t("Select feedback to view details.")}
+              </p>
+            )}
+          </section>
         </div>
       </div>
     </DashboardLayout>
