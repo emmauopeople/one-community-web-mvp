@@ -20,6 +20,11 @@ test('tunnel isolates connector, publishes no ports and excludes local secrets f
  assert.match(gateway,/proxy_set_header X-Forwarded-Proto https/);
  assert.match(gateway,/proxy_set_header X-Forwarded-For \$remote_addr/);
  assert.match(gateway,/admin\|metrics\|health/);
+ assert.match(gateway,/resolver 127\.0\.0\.11 valid=5s ipv6=off;/);
+ assert.match(gateway,/server skill-api:3000 resolve;/);
+ assert.match(gateway,/server public-web:80 resolve;/);
+ assert.match(gateway,/zone skill_api_backend 64k;/);
+ assert.match(gateway,/zone public_web_backend 64k;/);
 });
 test('secure provider cookies are issued behind HTTPS proxy and round trip with SameSite Lax',async()=>{
  const previous={COOKIE_SECURE:process.env.COOKIE_SECURE,SESSION_SECRET:process.env.SESSION_SECRET};

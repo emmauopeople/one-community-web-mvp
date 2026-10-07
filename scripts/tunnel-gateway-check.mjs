@@ -9,6 +9,16 @@ const source=`
      res.on('error',reject);
    });req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Gateway timeout')));
  });
+ // A new container or refreshed Docker DNS entry may need a few seconds.
+ const deadline=Date.now()+30000;
+ for (;;) {
+   try {
+     const home=await get('/'),api=await get('/api/skills/search?q=plumbing');
+     if(home.status===200&&api.status===200)break;
+   } catch {}
+   if(Date.now()>=deadline)throw Error('Gateway website/API did not become ready within 30 seconds');
+   await new Promise(resolve=>setTimeout(resolve,1000));
+ }
  for (const path of ['/','/api/skills/search?q=plumbing']) {
    const r=await get(path);if(r.status!==200)throw Error(path+': '+r.status);
    if(path.includes('search')&&!Array.isArray((await r.json()).results))throw Error('Search JSON missing');
@@ -19,6 +29,11 @@ const source=`
  const wrong=await get('/',{Host:'other.example'});if(wrong.status!==404)throw Error('Unknown host accepted');
  const redirect=await get('/',{'X-Forwarded-Proto':'http'});
  if(redirect.status!==308||redirect.headers.location!=='https://servicecam.org/')throw Error('HTTP must redirect to HTTPS');
+ const feedback=await new Promise((resolve,reject)=>{
+   const req=http.request({hostname:'tunnel-gateway',port:8080,path:'/api/feedback',method:'POST',headers:{Host:'servicecam.org','Content-Type':'application/json'}},res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});
+   req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Feedback probe timeout')));req.end('{}');
+ });
+ if(feedback!==400)throw Error('Feedback route must reject invalid input with 400, received '+feedback);
  console.log('PASS tunnel gateway website/API routing, private paths and unknown host rejection');
 `;
 execFileSync('docker',['compose','exec','-T','skill-api','node','--input-type=module','-e',source],{stdio:'inherit'});

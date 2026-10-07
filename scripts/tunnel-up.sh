@@ -26,6 +26,9 @@ CLOUDFLARED_IMAGE="${CLOUDFLARED_IMAGE//$'\r'/}"
 export CLOUDFLARED_IMAGE
 docker compose -f compose.yaml -f compose.tunnel.yaml config --quiet
 docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d tunnel-gateway
+# Compose does not restart a service just because a bind-mounted config changed.
+docker compose -f compose.yaml -f compose.tunnel.yaml exec -T tunnel-gateway nginx -t
+docker compose -f compose.yaml -f compose.tunnel.yaml restart tunnel-gateway
 node scripts/tunnel-gateway-check.mjs
 docker compose -f compose.yaml -f compose.tunnel.yaml up -d cloudflared
 printf '\nConnector started. In Cloudflare add a published application route:\nDomain: servicecam.org (subdomain and path blank)\nService: HTTP, tunnel-gateway:8080\nThen run: node scripts/tunnel-check.mjs\n'

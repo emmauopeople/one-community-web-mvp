@@ -32,5 +32,6 @@ jobs:
           docker compose -f compose.yaml -f compose.tunnel.yaml config --quiet
           docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d tunnel-gateway
           node scripts/tunnel-gateway-check.mjs
+          node scripts/test-tunnel-dns.mjs
       - if: always()
         run: docker compose down --remove-orphans
