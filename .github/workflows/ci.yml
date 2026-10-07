@@ -9,6 +9,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: compose.yaml:compose.ci-dns.yaml
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,6 +22,9 @@ jobs:
       - run: npm run test:legacy
       - run: npm run build
       - run: npm run setup:local
+      - name: Define isolated CI subnet for forced address replacement
+        run: |
+          printf 'networks:\n  internal:\n    ipam:\n      config:\n        - subnet: 172.28.210.0/24\n' > compose.ci-dns.yaml
       - run: docker compose config --quiet
       - run: docker compose up --build -d
       - run: docker compose run --build --rm seed
@@ -29,8 +34,8 @@ jobs:
           CLOUDFLARED_IMAGE: cloudflare/cloudflared:latest
         run: |
           printf 'ci-placeholder-not-a-tunnel-token' > .env.tunnel-token
-          docker compose -f compose.yaml -f compose.tunnel.yaml config --quiet
-          docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d tunnel-gateway
+          docker compose -f compose.yaml -f compose.tunnel.yaml -f compose.ci-dns.yaml config --quiet
+          docker compose -f compose.yaml -f compose.tunnel.yaml -f compose.ci-dns.yaml up --build -d tunnel-gateway
           node scripts/tunnel-gateway-check.mjs
           node scripts/test-tunnel-dns.mjs
       - if: always()

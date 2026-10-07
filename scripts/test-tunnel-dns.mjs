@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 if(process.env.CI!=='true')throw Error('This test is for disposable CI stacks only.');
 const docker=(...args)=>execFileSync('docker',args,{encoding:'utf8'}).trim();
-const compose=['compose','-f','compose.yaml','-f','compose.tunnel.yaml'];
+const compose=['compose','-f','compose.yaml','-f','compose.tunnel.yaml','-f','compose.ci-dns.yaml'];
 const inspect=id=>JSON.parse(docker('inspect',id))[0];
 const gateway=docker(...compose,'ps','-q','tunnel-gateway');
 const started=inspect(gateway).State.StartedAt;
