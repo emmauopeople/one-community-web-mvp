@@ -199,7 +199,7 @@ export default function SearchPage() {
             disabled={loading}
             className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-bold py-4 disabled:opacity-60"
           >
-            {loading ? t("Searchingâ€¦") : t("Search")}
+            {loading ? t("Searching…") : t("Search")}
           </button>
           <button
             type="button"
@@ -218,7 +218,7 @@ export default function SearchPage() {
                 className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${geo ? "translate-x-3" : ""}`}
               />
             </span>
-            {locating ? t("Locatingâ€¦") : t("Use location")}
+            {locating ? t("Locating…") : t("Use location")}
           </button>
           {geoMessage && (
             <p role="status" className="text-sm text-amber-800">
@@ -285,7 +285,7 @@ export default function SearchPage() {
                   <p className="text-xs text-emerald-800 mt-1">
                     {t(s.category)}
                     {s.distance_km != null
-                      ? t(" Â· about {distance} km", { distance: s.distance_km })
+                      ? t(" · about {distance} km", { distance: s.distance_km })
                       : ""}
                   </p>
                 </div>
@@ -303,7 +303,7 @@ export default function SearchPage() {
                 })
               }
             >
-              {loading ? t("Loadingâ€¦") : t("Load more")}
+              {loading ? t("Loading…") : t("Load more")}
             </button>
           )}
         </section>

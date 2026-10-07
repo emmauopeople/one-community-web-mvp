@@ -158,7 +158,7 @@ export default function FeedbackFooter({ enabled = true }) {
             aria-label={t("Close")}
             onClick={dismiss}
           >
-            Ã—
+            ×
           </button>
           <p className="text-sm font-medium pr-6">{t(question)}</p>
           <div className="flex gap-4 mt-3">
@@ -189,7 +189,7 @@ export default function FeedbackFooter({ enabled = true }) {
           className="float-right text-blue-700 px-2"
           aria-label={t("Close")}
         >
-          Ã—
+          ×
         </button>
         <h2 id="feedback-title" className="text-base font-medium pr-6 mb-4">
           {t(
@@ -302,7 +302,7 @@ export default function FeedbackFooter({ enabled = true }) {
               disabled={busy}
               className="w-full rounded-xl p-3 text-white bg-gradient-to-r from-blue-600 to-emerald-500"
             >
-              {t(busy ? "Savingâ€¦" : "Submit")}
+              {t(busy ? "Saving…" : "Submit")}
             </button>
           </form>
         )}

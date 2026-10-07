@@ -72,8 +72,8 @@ function Item({ item, onChange }) {
         {item.subject || t(labels[item.kind])}
       </h2>
       <p>
-        {t(labels[item.category] || labels[item.kind])} Â· {item.channel} Â·{" "}
-        {item.language.toUpperCase()} Â·{" "}
+        {t(labels[item.category] || labels[item.kind])} · {item.channel} ·{" "}
+        {item.language.toUpperCase()} ·{" "}
         {new Date(item.created_at).toLocaleString()}
       </p>
       <p className="whitespace-pre-wrap break-words">{item.description}</p>
@@ -131,7 +131,7 @@ function Item({ item, onChange }) {
             <div key={r.id} className="border-l-2 p-2 my-2">
               <p className="whitespace-pre-wrap break-words">{r.body}</p>
               <small>
-                {t(labels[r.delivery_status])} Â·{" "}
+                {t(labels[r.delivery_status])} ·{" "}
                 {new Date(r.created_at).toLocaleString()}
               </small>
             </div>
@@ -158,7 +158,7 @@ function Item({ item, onChange }) {
             disabled={busy || !body.trim()}
             className="bg-blue-700 text-white rounded px-4 py-2"
           >
-            {t(busy ? "Savingâ€¦" : "Send reply")}
+            {t(busy ? "Saving…" : "Send reply")}
           </button>
         </form>
       )}
@@ -197,7 +197,7 @@ export default function FeedbackPage() {
     <DashboardLayout title="Community feedback">
       <div className="space-y-4">
         <p className="text-sm">
-          {t("Cameroon usefulness survey")}: {t("Yes")} {yes} Â· {t("No")} {no}
+          {t("Cameroon usefulness survey")}: {t("Yes")} {yes} · {t("No")} {no}
         </p>
         <p className="text-xs text-gray-600">
           {t(
@@ -226,7 +226,7 @@ export default function FeedbackPage() {
             {t(error)} <button onClick={load}>{t("Retry")}</button>
           </p>
         )}
-        {loading && <p>{t("Loadingâ€¦")}</p>}
+        {loading && <p>{t("Loading…")}</p>}
         {!loading && !error && !data.items.length && (
           <p>{t("No feedback yet.")}</p>
         )}
