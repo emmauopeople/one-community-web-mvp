@@ -11,7 +11,7 @@ export default function DiscoveryHeader({
   radius,
   onRadius,
 }) {
-  useLocale();
+  const language = useLocale();
   const [otherSelected, setOtherSelected] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
   const isCustomCategory = Boolean(category) && !categories.some(c => c.value === category);
@@ -191,6 +191,11 @@ export default function DiscoveryHeader({
           ))}
         </div>
       </dialog>
+      <a href="/downloads/one-community-0.1.0.apk" download="One-Community-0.1.0.apk"
+        className="inline-flex items-center gap-2 mt-3 rounded-xl bg-blue-700 px-4 py-2 text-white text-sm font-semibold">
+        {language === "fr" ? "Télécharger pour Android" : "Download for Android"}
+        <span className="text-xs font-normal">(75 MB)</span>
+      </a>
     </header>
   );
 }

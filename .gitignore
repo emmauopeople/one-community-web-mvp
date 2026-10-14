@@ -149,3 +149,6 @@ vite.config.ts.timestamp-*
 **/coverage/
 **/*cookies*.txt
 **/backup.sql
+
+# Local APK originals are excluded; selected APK is served by public-web.
+/artifact/

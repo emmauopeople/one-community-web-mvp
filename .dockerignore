@@ -9,3 +9,6 @@
 **/*cookie*
 **/*backup*
 work
+
+# Local APK originals are excluded; selected APK is served by public-web.
+artifact
