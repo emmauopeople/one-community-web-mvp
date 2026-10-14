@@ -1,0 +1,35 @@
+http:
+  routers:
+    public-api:
+      entryPoints: [public]
+      rule: PathPrefix(`/api/`)
+      priority: 20
+      middlewares: [strip-api]
+      service: skill-api
+    public-web:
+      entryPoints: [public]
+      rule: PathPrefix(`/`)
+      priority: 1
+      service: public-web
+    admin-api:
+      entryPoints: [admin]
+      rule: PathPrefix(`/api/admin/`)
+      priority: 20
+      service: admin-api
+    admin-web:
+      entryPoints: [admin]
+      rule: PathPrefix(`/`)
+      priority: 1
+      service: admin-web
+    mobile-api:
+      entryPoints: [mobile]
+      rule: PathPrefix(`/`)
+      service: skill-api
+  middlewares:
+    strip-api:
+      stripPrefix: { prefixes: [/api] }
+  services:
+    skill-api: { loadBalancer: { servers: [{ url: 'http://skill-api:3000' }] } }
+    admin-api: { loadBalancer: { servers: [{ url: 'http://admin-api:5000' }] } }
+    public-web: { loadBalancer: { servers: [{ url: 'http://public-web:80' }] } }
+    admin-web: { loadBalancer: { servers: [{ url: 'http://admin-web:80' }] } }

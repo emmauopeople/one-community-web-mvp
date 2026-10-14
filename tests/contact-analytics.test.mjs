@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {registerHooks,createRequire} from 'node:module';
+const require=createRequire(new URL('../services/skill-visibility/package.json',import.meta.url));
+const express=require('express'),request=require('supertest');
+const db=new URL('../services/skill-visibility/db.js',import.meta.url).href;
+const mail=require.resolve('nodemailer');
+let count=0,fail=false;
+globalThis.contactQuery=async sql=>{if(sql.startsWith('INSERT INTO events'))count++;return {rowCount:1,rows:[{title:'Plumbing',city:'Douala',provider_email:'fixture@example.test'}]};};
+globalThis.contactMail=async()=>{if(fail)throw new Error('Fixture mail failure');};
+registerHooks({load(url,ctx,next){if(url===db)return {format:'module',shortCircuit:true,source:'export const query=(...args)=>globalThis.contactQuery(...args)'};
+ if(url.endsWith('/nodemailer/lib/nodemailer.js'))return {format:'module',shortCircuit:true,source:'export default {createTransport:()=>({sendMail:(...args)=>globalThis.contactMail(...args)})}'};
+ return next(url,ctx);}});
+test('only successful server email delivery logs contact; old client duplicate posts are rejected',async()=>{
+ const app=express();app.use(express.json());app.use((await import('../services/skill-visibility/src/routes/contact.js')).default);
+ app.use('/events',(await import('../services/skill-visibility/src/routes/events.js')).default);
+ const payload={skillId:1,fromEmail:'visitor@example.test',message:'Please repair our water pipe.'};
+ await request(app).post('/contact/email').send(payload).expect(200);assert.equal(count,1);
+ await request(app).post('/events').send({eventType:'contact_click_email',meta:{skillId:1}}).expect(400);assert.equal(count,1);
+ fail=true;await request(app).post('/contact/email').send(payload).expect(500);assert.equal(count,1);
+});

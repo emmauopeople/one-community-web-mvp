@@ -1,0 +1,11 @@
+**/node_modules
+**/coverage
+**/dist
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+**/*cookie*
+**/*backup*
+work

@@ -1,0 +1,27 @@
+{
+  "name": "one-community-web-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "setup:local": "node scripts/setup-local.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:legacy": "node scripts/packages.mjs test",
+    "install:apps": "node scripts/packages.mjs install",
+    "build": "node scripts/packages.mjs build",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed-local.mjs",
+    "test:smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "pg": "8.17.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "yaml": "2.9.1"
+  }
+}

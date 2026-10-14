@@ -1,0 +1,31 @@
+# Opt-in public pilot. Start with scripts/tunnel-up.sh; base compose stays local-only.
+services:
+  skill-api:
+    environment:
+      COOKIE_SECURE: 'true'
+      TRUST_PROXY: '1'
+      ALLOWED_ORIGINS: https://servicecam.org
+  tunnel-gateway:
+    image: nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    volumes: [./infra/tunnel-gateway.conf:/etc/nginx/conf.d/default.conf:ro]
+    depends_on:
+      skill-api: {condition: service_healthy}
+      public-web: {condition: service_started}
+    networks: [internal, tunnel]
+    restart: unless-stopped
+  cloudflared:
+    image: ${CLOUDFLARED_IMAGE:?Run scripts/tunnel-up.sh}
+    user: '0:0'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [tunnel, --no-autoupdate, run, --token-file, /run/secrets/tunnel_token]
+    secrets: [tunnel_token]
+    depends_on: [tunnel-gateway]
+    networks: [tunnel]
+    restart: unless-stopped
+secrets:
+  tunnel_token:
+    file: ./.env.tunnel-token
+networks:
+  tunnel: {}

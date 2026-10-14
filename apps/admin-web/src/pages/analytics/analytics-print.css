@@ -1,0 +1,18 @@
+#analytics-print-report {display:none}
+@page {size:A4 portrait;margin:14mm}
+@media print {
+  body:has(#analytics-print-report) {height:auto !important;overflow:visible !important}
+  body:has(#analytics-print-report) > * {display:none !important}
+  body > #analytics-print-report {display:block !important;color:#111827;background:white;font:10pt/1.45 Arial,sans-serif}
+  #analytics-print-report * {box-sizing:border-box}
+  #analytics-print-report header {border-bottom:2px solid #2563eb;padding-bottom:8pt;margin-bottom:14pt}
+  #analytics-print-report h1 {font-size:19pt;font-weight:600;margin:4pt 0}
+  #analytics-print-report h2 {font-size:12pt;font-weight:600;margin:16pt 0 6pt;break-after:avoid}
+  #analytics-print-report p {margin:5pt 0;orphans:3;widows:3}
+  #analytics-print-report table {width:100%;border-collapse:collapse;table-layout:fixed}
+  #analytics-print-report th,#analytics-print-report td {border-bottom:1px solid #d1d5db;padding:6pt;text-align:left;overflow-wrap:anywhere;vertical-align:top}
+  #analytics-print-report th {font-weight:600;background:#eff6ff}
+  #analytics-print-report thead {display:table-header-group}
+  #analytics-print-report tr {break-inside:avoid}
+  #analytics-print-report .report-short-section {break-inside:avoid}
+}
