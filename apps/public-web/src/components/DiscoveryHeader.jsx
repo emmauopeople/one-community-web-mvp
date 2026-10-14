@@ -1,21 +1,10 @@
 import LanguageSwitch from "../i18n/LanguageSwitch";
 import { t, te, useLocale } from "../i18n/index.js";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getStartedTitle, getStartedSections } from "./getStartedContent";
 import logo from "../assets/images/appLogo.png";
-const categories = [
-  "carpentry",
-  "plumbing",
-  "cleaning",
-  "tutor",
-  "hair-beauty",
-  "mechanic",
-  "catering",
-  "painting",
-  "tailor",
-  "trucker",
-];
+import { SERVICE_CATEGORIES as categories } from "../serviceCategories.js";
 export default function DiscoveryHeader({
   category,
   onCategory,
@@ -23,6 +12,10 @@ export default function DiscoveryHeader({
   onRadius,
 }) {
   useLocale();
+  const [otherSelected, setOtherSelected] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
+  const isCustomCategory = Boolean(category) && !categories.some(c => c.value === category);
+
   const menu = useRef(null),
     help = useRef(null),
     trigger = useRef(null);
@@ -85,20 +78,40 @@ export default function DiscoveryHeader({
               <select
                 aria-label={t("Categories")}
                 className="block mt-2 w-full rounded-xl border p-2 bg-white"
-                value={category}
+                value={otherSelected || isCustomCategory ? "__other__" : category}
                 onChange={(e) => {
-                  onCategory(e.target.value);
-                  menu.current.open = false;
+                  const value = e.target.value;
+                  setOtherSelected(value === "__other__");
+                  if (value === "__other__") {
+                    setCustomCategory(isCustomCategory ? category : "");
+                  } else {
+                    onCategory(value);
+                    menu.current.open = false;
+                  }
                 }}
               >
                 <option value="">{t("All")}</option>
                 {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {t(c)}
+                  <option key={c.value} value={c.value}>
+                    {t(c.label)}
                   </option>
                 ))}
+                <option value="__other__">{t("Others")}</option>
               </select>
             </label>
+            {(otherSelected || isCustomCategory) && (
+              <form className="px-3 pb-3 space-y-2" onSubmit={e => {
+                e.preventDefault();
+                onCategory(customCategory.trim());
+                menu.current.open = false;
+              }}>
+                <label htmlFor="custom-category">{t("Specify your service")}</label>
+                <input id="custom-category" className="w-full rounded-xl border p-2"
+                  value={customCategory} onChange={e => setCustomCategory(e.target.value)}
+                  required minLength={2} maxLength={120} />
+                <button type="submit" className="rounded-xl bg-blue-700 text-white p-2">{t("Apply")}</button>
+              </form>
+            )}
             <details className="p-3">
               <summary className="cursor-pointer text-sm font-semibold">
                 {t("Distance \xB7")}

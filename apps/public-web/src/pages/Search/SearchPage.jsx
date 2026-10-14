@@ -7,7 +7,7 @@ import { api } from "../../app/api/client";
 import SkillModal from "./SkillModal";
 const readPreference = () => {
   try {
-    return localStorage.getItem("oc-nearby") === "yes";
+    return localStorage.getItem("oc-nearby") !== "no";
   } catch {
     return false;
   }
@@ -147,8 +147,10 @@ export default function SearchPage() {
     search({
       location: null,
     });
-    if (readPreference()) locate();
+    // Defer the prompt so React StrictMode's discarded mount cannot request it twice.
+    const launchPrompt = setTimeout(() => { if (readPreference()) locate(); }, 0);
     return () => {
+      clearTimeout(launchPrompt);
       request.current?.abort();
       ++locationRequest.current;
     };

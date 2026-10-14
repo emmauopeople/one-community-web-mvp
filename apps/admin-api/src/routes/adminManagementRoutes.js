@@ -71,85 +71,35 @@ router.get("/admins/:id", requireRootAdmin, async (req, res) => {
 });
 
 router.post("/admins", requireRootAdmin, async (req, res) => {
+  const full_name = typeof req.body.full_name === 'string' ? req.body.full_name.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = req.body.password;
+  const role = req.body.role ?? 'admin';
+  if (!full_name || full_name.length > 120 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({message:'Enter a full name and valid email address.'});
+  }
+  if (!['root_admin','admin'].includes(role)) return res.status(400).json({message:'Invalid role'});
+  if (typeof password !== 'string' || password.length < 8 || Buffer.byteLength(password, 'utf8') > 72) {
+    return res.status(400).json({message:'Password must be at least 8 characters and at most 72 bytes.'});
+  }
   try {
-    const { full_name, email, password } = req.body;
-
-    if (!full_name || !email || !password) {
-      return res.status(400).json({
-        message: "Full name, email, and password are required",
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        message: "Password must be at least 8 characters",
-      });
-    }
-
-    const existingAdmin = await pool.query(
-      `SELECT id FROM admin_users WHERE email = $1`,
-      [email],
-    );
-
-    if (existingAdmin.rows.length > 0) {
-      return res.status(409).json({
-        message: "An admin with this email already exists",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      `
-      INSERT INTO admin_users (
-        full_name,
-        email,
-        password_hash,
-        role,
-        is_active
-      )
-      VALUES ($1, $2, $3, 'admin', true)
-      RETURNING id, full_name, email, role, is_active, created_at, updated_at
-      `,
-      [full_name, email, passwordHash],
-    );
-
-    const createdAdmin = result.rows[0];
-
-    await pool.query(
-      `
-      INSERT INTO audit_logs (
-        actor_admin_id,
-        action_type,
-        target_type,
-        target_id,
-        details
-      )
-      VALUES ($1, $2, $3, $4, $5::jsonb)
-      `,
-      [
-        req.session.admin.id,
-        "admin_created",
-        "admin",
-        String(createdAdmin.id),
-        JSON.stringify({
-          full_name: createdAdmin.full_name,
-          email: createdAdmin.email,
-          role: createdAdmin.role,
-          is_active: createdAdmin.is_active,
-        }),
-      ],
-    );
-
-    return res.status(201).json({
-      message: "Admin created successfully",
-      admin: createdAdmin,
-    });
+    const passwordHash = await bcrypt.hash(password, 12);
+    // Account creation and its audit record succeed or roll back together.
+    const result = await pool.query(`
+      WITH created AS (
+        INSERT INTO admin_users(full_name,email,password_hash,role,is_active)
+        VALUES ($1,$2,$3,$4,true)
+        RETURNING id,full_name,email,role,is_active,created_at,updated_at
+      ), audit AS (
+        INSERT INTO audit_logs(actor_admin_id,action_type,target_type,target_id,details)
+        SELECT $5,'admin_created','admin',id::text,
+          jsonb_build_object('full_name',full_name,'email',email,'role',role,'is_active',is_active)
+        FROM created
+      ) SELECT * FROM created`, [full_name,email,passwordHash,role,req.session.admin.id]);
+    return res.status(201).json({message:'Admin created successfully',admin:result.rows[0]});
   } catch (error) {
-    return res.status(500).json({
-      message: "Failed to create admin",
-      error: error.message,
-    });
+    if (error.code === '23505') return res.status(409).json({message:'An admin with this email already exists'});
+    return res.status(500).json({message:'Failed to create admin'});
   }
 });
 

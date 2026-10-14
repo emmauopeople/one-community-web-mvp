@@ -1,0 +1,11 @@
+# Add last when enabling real delivery; base Compose continues using local Mailpit.
+services:
+  skill-api:
+    environment: &smtp
+      SMTP_HOST: ${SMTP_HOST:?Set SMTP_HOST in .env.smtp}
+      SMTP_PORT: ${SMTP_PORT:?Set SMTP_PORT in .env.smtp}
+      SMTP_USER: ${SMTP_USER:?Set SMTP_USER in .env.smtp}
+      SMTP_PASS: ${SMTP_PASS:?Set SMTP_PASS in .env.smtp}
+      SMTP_FROM: ${SMTP_FROM:?Set SMTP_FROM in .env.smtp}
+  admin-api:
+    environment: *smtp

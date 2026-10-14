@@ -137,3 +137,13 @@ it("keeps selected details and updates the row after a status change, then clear
   await screen.findByText("Select feedback to view details.");
   expect(screen.queryByLabelText("Status")).toBeNull();
 });
+
+it("defaults to unresolved and requests category and resolved filters", async () => {
+  get.mockResolvedValue({data: {items: [], summary: [], hasMore: false}});
+  render(<FeedbackPage />);
+  await waitFor(() => expect(get).toHaveBeenCalledWith("/feedback", {params: {kind: "all", page: 1, category: "all", status: "open"}}));
+  fireEvent.change(screen.getByLabelText("Category"), {target: {value: "general"}});
+  await waitFor(() => expect(get).toHaveBeenLastCalledWith("/feedback", {params: {kind: "all", page: 1, category: "general", status: "open"}}));
+  fireEvent.change(screen.getByLabelText("Filter by status"), {target: {value: "resolved"}});
+  await waitFor(() => expect(get).toHaveBeenLastCalledWith("/feedback", {params: {kind: "all", page: 1, category: "general", status: "resolved"}}));
+});

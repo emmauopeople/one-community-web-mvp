@@ -189,6 +189,19 @@ test("feedback: anonymous privacy, validation, GPS, idempotency, moderation and 
     ).rows[0].n,
     3,
   );
+  list = await auth(request(app).get("/admin/feedback")).expect(200);
+  assert(list.body.items.every(item => item.status !== "resolved"));
+  list = await auth(request(app).get("/admin/feedback?status=resolved")).expect(200);
+  assert.equal(list.body.items.length, 1);
+  assert.equal(list.body.items[0].id, 1);
+  await request(app).post("/feedback").send({...base, submissionId: randomUUID(), category: "general"}).expect(201);
+  list = await auth(request(app).get("/admin/feedback?category=general")).expect(200);
+  assert.equal(list.body.items.length, 1);
+  assert.equal(list.body.items[0].category, "general");
+  list = await auth(request(app).get("/admin/feedback?status=all")).expect(200);
+  assert.equal(list.body.items.length, 3);
+  await auth(request(app).get("/admin/feedback?status=invalid")).expect(400);
+  await auth(request(app).get("/admin/feedback?category=invalid")).expect(400);
   await db.exec("UPDATE admin_users SET is_active=false");
   await auth(request(app).get("/admin/feedback")).expect(403);
 });

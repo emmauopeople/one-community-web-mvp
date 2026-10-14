@@ -26,13 +26,6 @@ export default function DashboardLayout({ children, title = "Dashboard" }) {
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-          <NavLink to="/feedback" className="block rounded-lg px-4 py-2 text-sm text-white">{t("Community feedback")}</NavLink>
-          <NavLink
-            to="/reviews"
-            className="block rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
-          >
-            {t("Reviews")}
-          </NavLink>
           <NavLink
             to="/dashboard"
             className={({ isActive }) =>
@@ -40,6 +33,13 @@ export default function DashboardLayout({ children, title = "Dashboard" }) {
             }
           >
             {t("Dashboard")}
+          </NavLink>
+          <NavLink to="/feedback" className="block rounded-lg px-4 py-2 text-sm text-white">{t("Community feedback")}</NavLink>
+          <NavLink
+            to="/reviews"
+            className="block rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
+          >
+            {t("Reviews")}
           </NavLink>
 
           <NavLink
@@ -110,12 +110,12 @@ export default function DashboardLayout({ children, title = "Dashboard" }) {
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-700 to-green-600 border-t border-white/20 md:hidden">
         <div className="grid grid-cols-3 text-center text-xs">
+          <NavLink to="/dashboard" className="px-2 py-3 text-white">
+            {t("Dashboard")}
+          </NavLink>
           <NavLink to="/feedback" className="px-2 py-3 text-white">{t("Community feedback")}</NavLink>
           <NavLink to="/reviews" className="px-2 py-3 text-white">
             {t("Reviews")}
-          </NavLink>
-          <NavLink to="/dashboard" className="px-2 py-3 text-white">
-            {t("Dashboard")}
           </NavLink>
           <NavLink to="/providers" className="px-2 py-3 text-white">
             {t("Providers")}

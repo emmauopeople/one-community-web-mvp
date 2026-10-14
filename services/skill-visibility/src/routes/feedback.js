@@ -21,6 +21,7 @@ export function validateFeedback(b) {
   if (
     kind === "report" &&
     (![
+      "general",
       "app_problem",
       "suggestion",
       "application_comment",

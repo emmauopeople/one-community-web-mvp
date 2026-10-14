@@ -1,0 +1,22 @@
+export const SERVICE_CATEGORIES = [
+  { label: "Carpenter", value: "carpentry" },
+  { label: "Plumber", value: "plumbing" },
+  { label: "House Cleaner", value: "cleaning" },
+  { label: "Tutor", value: "tutor" },
+  { label: "Hair/Beauty", value: "hair-beauty" },
+  { label: "Mechanic", value: "mechanic" },
+  { label: "Catering", value: "catering" },
+  { label: "Painter", value: "painting" },
+  { label: "Tailor", value: "tailor" },
+  { label: "Goods Transporter", value: "trucker" },
+  { label: "Bricklayer", value: "bricklayer" },
+  { label: "Welder", value: "welder" },
+  { label: "Electrician", value: "electrician" },
+  { label: "Electronic Repair", value: "electronic-repair" },
+  { label: "Motorcycle Delivery Rider", value: "motorcycle-delivery-rider" },
+  { label: "Gardener", value: "gardener" },
+  { label: "Builder", value: "builder" },
+  { label: "Borehole Technician", value: "borehole-technician" },
+  { label: "Solar Installer", value: "solar-installer" },
+];
+export const CATEGORY_OPTIONS = [...SERVICE_CATEGORIES, { label: "Others", value: "__other__" }];

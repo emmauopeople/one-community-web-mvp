@@ -1,3 +1,4 @@
+import { replyEmailContent } from "../services/replyEmail.js";
 import express from "express";
 import nodemailer from "nodemailer";
 import requireAdminAuth from "../middleware/requireAdminAuth.js";
@@ -67,12 +68,12 @@ async function sendPublicReplyEmail({ to, requesterName, subject, note }) {
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to,
     subject: `One Community reply: ${subject || "Your message"}`,
-    text:
+    ...replyEmailContent(
       `Hello ${requesterName || ""},\n\n` +
       `The One Community admin team replied to your message.\n\n` +
       `${note}\n\n` +
       `Thank you,\n` +
-      `One Community Admin Team\n`,
+      `One Community Admin Team\n`),
   });
 
   return { sent: true };

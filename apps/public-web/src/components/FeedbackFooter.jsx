@@ -1,8 +1,10 @@
+import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { t, useLocale } from "../i18n/index.js";
 import { api } from "../app/api/client";
 const question = "Can this application help people in Cameroon?";
 const categories = {
+  general: "General inquiry",
   app_problem: "App problem",
   suggestion: "Suggestion",
   application_comment: "Application comment",
@@ -34,7 +36,7 @@ export default function FeedbackFooter({ enabled = true }) {
     id = useRef();
   const [mode, setMode] = useState(""),
     [useful, setUseful] = useState(null),
-    [category, setCategory] = useState("app_problem"),
+    [category, setCategory] = useState("general"),
     [subject, setSubject] = useState(""),
     [description, setDescription] = useState(""),
     [email, setEmail] = useState(""),
@@ -130,8 +132,9 @@ export default function FeedbackFooter({ enabled = true }) {
         ref={footer}
         className="text-center text-sm text-blue-700 py-6 space-x-5"
       >
+        <Link to="/provider/auth">{t("Provider")}</Link>
         <button onClick={() => open("about")}>{t("About")}</button>
-        <button onClick={() => open("report")}>{t("Report issues")}</button>
+        <button onClick={() => open("report")}>{t("Contact us")}</button>
         <button onClick={() => open("survey")}>{t("Your opinion")}</button>
       </footer>
       {!mode && message && (
@@ -161,7 +164,7 @@ export default function FeedbackFooter({ enabled = true }) {
             mode === "about"
               ? "About"
               : mode === "report"
-                ? "Report a problem or suggestion for improvement"
+                ? "Contact us or report an issue"
                 : question,
           )}
         </h2>
@@ -265,19 +268,18 @@ export default function FeedbackFooter({ enabled = true }) {
               />{" "}
               {t("You may contact me by email about this feedback.")}
             </label>
-            {contact && (
               <label className="block">
-                {t("Email")}
+                {t("Email (optional)")}
                 <input
                   className={field}
                   type="email"
-                  required
+                  required={contact}
                   maxLength={254}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
+                <span className="block text-xs text-gray-500">{t("Email is saved only if you allow us to reply.")}</span>
               </label>
-            )}
             {message && <p role="alert">{t(message)}</p>}
             <button
               disabled={busy}

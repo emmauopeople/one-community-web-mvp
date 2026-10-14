@@ -1,3 +1,4 @@
+import { replyEmailContent } from "../services/replyEmail.js";
 import express from "express";
 import nodemailer from "nodemailer";
 import requireAdminAuth from "../middleware/requireAdminAuth.js";
@@ -18,9 +19,13 @@ router.use("/feedback", requireAdminAuth, async (req, res, next) => {
 });
 router.get("/feedback", async (req, res) => {
   const kind = req.query.kind || "all",
-    page = Number(req.query.page || 1);
+    page = Number(req.query.page || 1),
+    category = req.query.category || "all",
+    status = req.query.status || "open";
   if (
     !["all", "report", "survey"].includes(kind) ||
+    !["all", "general", "app_problem", "suggestion", "application_comment", "provider_problem"].includes(category) ||
+    !["open", "all", "new", "in_progress", "resolved"].includes(status) ||
     !Number.isInteger(page) ||
     page < 1 ||
     page > 10000
@@ -28,8 +33,8 @@ router.get("/feedback", async (req, res) => {
     return res.sendStatus(400);
   try {
     const rows = await pool.query(
-      "SELECT * FROM public_feedback WHERE ($1='all' OR kind=$1) ORDER BY created_at DESC,id DESC LIMIT 21 OFFSET $2",
-      [kind, (page - 1) * 20],
+      "SELECT * FROM public_feedback WHERE ($1='all' OR kind=$1) AND ($3='all' OR category=$3) AND ($4='all' OR ($4='open' AND status<>'resolved') OR status=$4) ORDER BY created_at DESC,id DESC LIMIT 21 OFFSET $2",
+      [kind, (page - 1) * 20, category, status],
     );
     const summary = await pool.query(
       "SELECT kind,useful,count(*)::int AS count FROM public_feedback GROUP BY kind,useful",
@@ -123,7 +128,7 @@ router.post("/feedback/:id/replies", async (req, res) => {
         (f.language === "fr"
           ? "Réponse One Community : "
           : "One Community reply: ") + (f.subject || "Feedback"),
-      text: body,
+      ...replyEmailContent(body, f.language),
     });
     await pool.query(
       "UPDATE feedback_replies SET delivery_status='sent',sent_at=now() WHERE id=$1",

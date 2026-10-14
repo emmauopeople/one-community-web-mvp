@@ -7,7 +7,8 @@ const api = axios.create({
   withCredentials: true,
 });
 const labels = {
-  report: "Report issues",
+  report: "Contact us",
+  general: "General inquiry",
   survey: "Your opinion",
   app_problem: "App problem",
   suggestion: "Suggestion",
@@ -169,6 +170,8 @@ function Item({ item, onChange }) {
 export default function FeedbackPage() {
   useLocale();
   const [kind, setKind] = useState("all"),
+    [category, setCategory] = useState("all"),
+    [status, setStatus] = useState("open"),
     [page, setPage] = useState(1),
     [selectedId, setSelectedId] = useState(null),
     [data, setData] = useState({ items: [], summary: [] }),
@@ -184,7 +187,7 @@ export default function FeedbackPage() {
     const sequence = ++requestSequence.current;
     setLoading(true);
     try {
-      const result = (await api.get("/feedback", { params: { kind, page } }))
+      const result = (await api.get("/feedback", { params: { kind, page, category, status } }))
         .data;
       if (sequence !== requestSequence.current) return;
       setData(result);
@@ -201,7 +204,7 @@ export default function FeedbackPage() {
     return () => {
       requestSequence.current += 1;
     };
-  }, [kind, page]);
+  }, [kind, page, category, status]);
   const yes = data.summary
       .filter((x) => x.kind === "survey" && x.useful === true)
       .reduce((n, x) => n + x.count, 0),
@@ -224,10 +227,11 @@ export default function FeedbackPage() {
             aria-label={t("Community feedback")}
             className="bg-white rounded-2xl shadow-sm p-5 space-y-4 min-w-0"
           >
-            <label>
+            <div className="flex flex-nowrap gap-3 items-end overflow-x-auto" aria-label={t("Community feedback")}>
+            <label className="min-w-0 flex-1 text-sm">
               {t("Type")}{" "}
               <select
-                className="border rounded p-2"
+                className="block mt-1 w-full border rounded p-2"
                 value={kind}
                 onChange={(e) => {
                   setSelectedId(null);
@@ -242,6 +246,21 @@ export default function FeedbackPage() {
                 ))}
               </select>
             </label>
+            <label className="min-w-0 flex-1 text-sm">
+              {t("Category")} <select aria-label={t("Category")} className="block mt-1 w-full border rounded p-2"
+                value={category} onChange={e => {setSelectedId(null);setCategory(e.target.value);setPage(1);}}>
+                {["all", "general", "app_problem", "suggestion", "application_comment", "provider_problem"].map(c =>
+                  <option key={c} value={c}>{t(c === "all" ? "All categories" : labels[c])}</option>)}
+              </select>
+            </label>
+            <label className="min-w-0 flex-1 text-sm">
+              {t("Filter by status")} <select aria-label={t("Filter by status")} className="block mt-1 w-full border rounded p-2"
+                value={status} onChange={e => {setSelectedId(null);setStatus(e.target.value);setPage(1);}}>
+                {["open", "all", "new", "in_progress", "resolved"].map(s =>
+                  <option key={s} value={s}>{t(s === "open" ? "Unresolved" : s === "all" ? "All statuses" : labels[s])}</option>)}
+              </select>
+            </label>
+            </div>
             {error && (
               <p role="alert">
                 {t(error)} <button onClick={load}>{t("Retry")}</button>
@@ -259,7 +278,7 @@ export default function FeedbackPage() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-blue-700 text-white text-left">
                     <tr>
-                      {["Opinion", "Date", "Status"].map((label) => (
+                      {["Opinion", "Category", "Date", "Status"].map((label) => (
                         <th key={label} scope="col" className="p-3 font-medium">
                           {t(label)}
                         </th>
@@ -295,6 +314,7 @@ export default function FeedbackPage() {
                             </p>
                           )}
                         </td>
+                        <td className="p-3">{t(labels[item.category] || labels[item.kind])}</td>
                         <td className="p-3 whitespace-nowrap text-gray-600">
                           <time dateTime={item.created_at}>
                             {new Date(item.created_at).toLocaleDateString()}

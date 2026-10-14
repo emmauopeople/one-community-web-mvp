@@ -6,52 +6,7 @@ import { skillsApi } from "../../api/skills.api";
 import SkillMediaUploader from "../../components/SkillMediaUploader";
 import { useAuth } from "../../state/auth.store.jsx";
 import { api } from "../../api/client.js";
-const CATEGORY_OPTIONS = [
-  {
-    label: "Carpentry",
-    value: "carpentry",
-  },
-  {
-    label: "Plumbing",
-    value: "plumbing",
-  },
-  {
-    label: "Cleaning",
-    value: "cleaning",
-  },
-  {
-    label: "Tutor",
-    value: "tutor",
-  },
-  {
-    label: "Hair/Beauty",
-    value: "hair-beauty",
-  },
-  {
-    label: "Mechanic",
-    value: "mechanic",
-  },
-  {
-    label: "Catering",
-    value: "catering",
-  },
-  {
-    label: "Painting",
-    value: "painting",
-  },
-  {
-    label: "Tailor",
-    value: "tailor",
-  },
-  {
-    label: "Trucker",
-    value: "trucker",
-  },
-  {
-    label: "Other…",
-    value: "__other__",
-  },
-];
+import { CATEGORY_OPTIONS } from "../../../serviceCategories.js";
 const empty = {
   title: "",
   category: "",

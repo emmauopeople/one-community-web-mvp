@@ -248,7 +248,7 @@ function AdminsSection({
                       {adminItem.email}
                     </td>
                     <td className="py-4 pr-4 text-gray-600">
-                      {adminItem.role}
+                      {t(adminItem.role === "root_admin" ? "Root Admin" : "Admin")}
                     </td>
                     <td className="py-4 pr-4">
                       <span
@@ -304,6 +304,7 @@ export default function SystemPage() {
   const [adminDetailsLoading, setAdminDetailsLoading] = useState(false);
   const [isSavingAdmin, setIsSavingAdmin] = useState(false);
   const handleOpenCreatePanel = () => {
+    setAdminsError("");
     setIsCreatePanelOpen(true);
   };
   const handleCloseCreatePanel = () => {
@@ -512,12 +513,13 @@ export default function SystemPage() {
         />
       )}
 
-      <CreateAdminPanel
+      {isCreatePanelOpen && <CreateAdminPanel
         isOpen={isCreatePanelOpen}
         onClose={handleCloseCreatePanel}
         onCreate={handleCreateAdmin}
         isCreating={isCreatingAdmin}
-      />
+        error={adminsError}
+      />}
       <AdminDetailsPanel
         isOpen={isAdminDetailsOpen}
         onClose={handleCloseAdminDetails}
