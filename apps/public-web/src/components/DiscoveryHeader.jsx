@@ -191,10 +191,10 @@ export default function DiscoveryHeader({
           ))}
         </div>
       </dialog>
-      <a href="/downloads/one-community-0.1.1.apk" download="One-Community-0.1.1.apk"
+      <a href="/downloads/one-community-0.1.2.apk" download="One-Community-0.1.2.apk"
         className="inline-flex items-center gap-2 mt-3 rounded-xl bg-blue-700 px-4 py-2 text-white text-sm font-semibold">
         {language === "fr" ? "Télécharger pour Android" : "Download for Android"}
-        <span className="text-xs font-normal">(v0.1.1 · 76 MB)</span>
+        <span className="text-xs font-normal">(v0.1.2 · 76 MB)</span>
       </a>
     </header>
   );
